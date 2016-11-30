@@ -14,6 +14,7 @@
 \begin{document}
 \maketitle{}
 
+\section{Introduction and Definitions}
 Consider $n$ streams of time series describing the utilization traces of $n$ resources, each at some (fixed) granularity.
 Denote the space of a time series as $S$.
 
@@ -42,6 +43,8 @@ Then, we require that for a hash function $h \in \mathcal{H}, \Pr[h(x) = h(y)] \
 Additionally, for $x,y \in S$ with $d(x,y) > r, \Pr[h(x) = h(y)] \le p_2$ for the same, fixed $r$.
 This intuitively allows for hashes to ``collide'' with probability $p_1$ when time series are $r$-similar.
 Further, the probability of incorrect collision is limited by $p_2$ (ideally close to $0$) when two time series are more than $r$ apart.
+
+\section{Goals}
 
 \begin{itemize}
     \item Use hash that approximates time series distance~\cite{Hachiya13-NSH,Kale14-KLSH}.
