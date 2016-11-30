@@ -1,0 +1,37 @@
+\documentclass{report}
+\usepackage{parskip,amsmath,mathtools,amssymb,amsfonts}
+\usepackage{enumerate}
+\usepackage{url}
+\usepackage{fancyhdr,hyperref}
+\usepackage{booktabs,color,tabularx}
+\newcommand\numberthis{\addtocounter{equation}{1}\tag{\theequation}}
+\begin{document}
+
+Consider $n$ streams of time series describing the utilization traces of $n$ resources, each at some (fixed) granularity.
+Denote the space of a time series as $S$
+
+Define a function $d$:
+
+\begin{align*}
+    d_{a,b} \colon S^2 &\to [0,1]\\
+    (x[a:b],y[a:b]) &\mapsto [0,1] \numberthis
+\end{align*}
+
+where $d$ maps a portion of two time series to a real number in $[0,1]$ that represents the distance between the partial time series.
+
+Additionally, we require $d$ to satisfy the triangle inequality:
+
+\begin{align*}
+    d(x,y) \le d(x,z) + d(z,y) \numberthis
+\end{align*}
+
+Out of the box Dynamic Time Warping (DTW) does not satisfy the triangle inequality, so we leverage an approximate lower-bound DTW~\cite{Lemire:2009:FRT:1542560.1542887}.
+
+Suppose $p_1, p_2 \in [0,1]$ with $p_1 \ge p_2$.
+Then, for a hash function $h \in \mathcal{H}, \Pr[h(x) = h(y)] \ge p_1 \forall~x,y \in S$ with $d(x,y) \le r$ for some fixed $r$.
+Additionally, for $x,y \in S$ with $d(x,y) > r, \Pr[h(x) = h(y)] \le p_2$ for the same, fixed $r$.
+
+\bibliographystyle{unsrt}
+\bibliography{../notes/bibliography}
+
+\end{document}
