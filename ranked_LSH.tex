@@ -1,12 +1,16 @@
-\documentclass{article}
+\documentclass[a4paper]{article}
+\usepackage[margin=1.5in]{geometry}
 \usepackage{parskip,amsmath,mathtools,amssymb,amsfonts}
 \usepackage{enumerate}
 \usepackage{url,titling}
+%\usepackage{ulem}
 \usepackage{fancyhdr,hyperref}
 \usepackage{booktabs,color,tabularx}
 \newcommand\numberthis{\addtocounter{equation}{1}\tag{\theequation}}
+\newcommand{\norm}[1]{\left\lVert#1\right\rVert}
+\newcommand{\innerproduct}[2]{\langle{}#1,#2\rangle{}}
 
-\setlength{\droptitle}{-10em}
+\setlength{\droptitle}{-8em}
 \title{Ranked Leakage Sensitive Hashing}
 \author{Rohith Prakash}
 \date{}
@@ -15,19 +19,32 @@
 \maketitle{}
 
 \section{Introduction and Definitions}
-Consider $n$ streams of time series describing the utilization traces of $n$ resources, each at some (fixed) granularity.
-Denote the space of a time series as $S$.
+\label{sec:intro}
+Consider streams of time series describing the utilization traces of a set of $n$ resources, each at some (fixed) granularity.
+Intuitively, time series which are ``closer'' to each other (by some metric $d$) will be harder to distinguish by an arbitrary classifier and present fewer possibilities for information leakage.
+We expand on this intuition by considering a hashing family $\mathcal{H}$ and hashing function $h \in \mathcal{H}$ which has the following properties:
+\begin{enumerate}[(i)]
+    \item\label{itm:first} The hashing function \textit{collides} ($h(x) = h(y)$) with high probability iff $x$ and $y$ are ``close'' (i.e., $d(x,y) < r$ for some fixed $r$)
+    \item\label{itm:second} The hashing function has few \textit{false collisions}: If $d(x,y) > r$, $\Pr[h(x) = h(y)] < p$ for some fixed, small $p$.
+    \item\label{itm:third} The hashing family is parametrizable by distance $r$.
+        A family $\mathcal{H}_r$ obeys (\ref{itm:first}) and (\ref{itm:second}) with collision distance $r$.
+\end{enumerate}
 
-Define a function $d$:
+Properties (\ref{itm:first}) and (\ref{itm:second}) corroborate the notion of closeness to collision probabilities, which allows for the grouping of similar time series.
+Property (\ref{itm:third}) allows for an iterative hashing scheme to \textit{rank} the probabilities of closeness based on the varied parameter $r$.
+This is useful for classification (modeling an intelligent adversary) 
+
+\subsection{Distance Metric}
+Denote the space of a time series as $S$, and define a function $d$:
 
 \begin{align*}
-    d_{a,b} \colon S^2 &\to [0,1]\\
-    (x[a:b],y[a:b]) &\mapsto [0,1] \numberthis
+    d_{a,b} \colon S^2 &\to \mathbb{R}_{+}\\
+    (x[a:b],y[a:b]) &\mapsto r \numberthis
 \end{align*}
 
-where $d$ maps a portion of two time series to a real number in $[0,1]$ that represents the distance between the partial time series.
+Where $d$ maps a portion of two time series to a non-negative real number that represents the distance between the partial time series.
 
-Additionally, we require $d$ to be a metric (and satisfy the triangle inequality):
+Additionally, we require $d$ to actually be a metric~\cite{rosenlicht68-realanalysis}:
 
 \begin{align*}
     d(x,y) = 0 \Leftrightarrow x = y \\
@@ -35,21 +52,142 @@ Additionally, we require $d$ to be a metric (and satisfy the triangle inequality
     d(x,y) \le d(x,z) + d(z,y) \numberthis
 \end{align*}
 
-Out of the box Dynamic Time Warping (DTW) does not satisfy the triangle inequality, so it cannot be used.
-We may attempt to leverage an approximate lower-bound DTW~\cite{Lemire09-DTW} as well as other metrics proposed in recent literature.
+Simple Euclidean distance will not suffice, as it has many limitations for time series comparison~\cite{weighted-dtw}.
+Dynamic Time Warping (DTW) presents a much more accurate method for comparing time series, but it does not satisfy the triangle inequality and is thus not a metric.
+We could leverage an approximate lower-bound DTW~\cite{Lemire09-DTW} as this satisfies the triangle inequality, but recent literature~\cite{Kulis12-KLSH,Jiang15-KLSH,Kim16-SLSH} provide additional metrics which have proven efficiency and accuracy in fields such as image processing and classification.
+Reproducing kernel Hilbert spaces have been studied with respect to locality sensitive hashing methods and may be of great use to this problem.
 
-Fix $p_1, p_2 \in [0,1]$ with $p_1 \ge p_2$.
-Then, we require that for a hash function $h \in \mathcal{H}, \Pr[h(x) = h(y)] \ge p_1 \forall~x,y \in S$ with $d(x,y) \le r$ for some fixed $r$.
-Additionally, for $x,y \in S$ with $d(x,y) > r, \Pr[h(x) = h(y)] \le p_2$ for the same, fixed $r$.
-This intuitively allows for hashes to ``collide'' with probability $p_1$ when time series are $r$-similar.
-Further, the probability of incorrect collision is limited by $p_2$ (ideally close to $0$) when two time series are more than $r$ apart.
+\subsection{Reproducing Kernel Hilbert Space}
 
-\section{Goals}
+\textit{Reproducing kernel Hilbert spaces (RKHS)} are a Hilbert spaces (vector spaces over which inner products are defined) defined over functions with the following property:
+\begin{enumerate}[(i)]
+    \item For any two functions $f,g \in H$ defined over $dom(f)$, $\norm{f-g}_{H} < \epsilon \Rightarrow |f(x)-g(x)| < \delta~\forall~x \in dom(f)$. 
+\end{enumerate}
+
+We consider time series to be discrete-time functions in an arbitrary RKHS and leverage kernelized LSH schemes~\cite{Kale14-KLSH,Jiang15-KLSH, Kulis12-KLSH} to perform our ranked hashing.
+Since RKHS have a useful norm which intrinsically arises from their construction, we can leverage the norm in constructing a kernelized hash family to perform an explicit embedding.
+Note, however, that this norm is not necessarily a Euclidean, point-wise norm.
+The reverse, $|f(x)-g(x)| < \delta \Rightarrow \norm{f-g}_{H} < \epsilon$, need not be true in this space.
+
+\section{Hashing model for privacy}
+
+Consider a database of $n$ samples $D = \{x_1,\ldots,x_n\} \subset \mathbb{R}^d$ with feature map:
+
+\begin{align*}
+    \Phi \colon \mathbb{R}^d &\to \mathcal{H} \numberthis
+\end{align*}
+
+where $\mathcal{H}$ is a RKHS\@.
+A kernelized hashing scheme for a similarity metric requires that each hash function $h_r$ satisfy:
+
+\begin{align*}
+    \Pr[h_r(x_i) = h_r(x_j)] = \kappa_r(x_i, x_j) \numberthis
+    \label{eqn:hash_collision}
+\end{align*}
+
+where $\kappa(\cdot,\cdot)$ is a kernel function defined by:
+
+\begin{align*}
+    \kappa(x_i,x_j) = \innerproduct{\Phi(x_i)}{\Phi(x_j)} \numberthis
+\end{align*}
+
+We assume $\kappa_r$ is normalized with respect to distance bias $r$ such that $\kappa_r(\cdot,\cdot) \in [0,1]$, and $\kappa_r$ follows properties (\ref{itm:first}), (\ref{itm:second}), and (\ref{itm:third}) of Section~\ref{sec:intro}.
+
+Note that equation~\ref{eqn:hash_collision} confers similar ``bounds'' to the differential privacy condition~\cite{dwork2006}:
+
+\begin{align*}
+    \Pr[f(x) = o] \le e^{\epsilon} \Pr[f(y) = o] \numberthis
+    \label{eqn:differential_privacy}
+\end{align*}
+
+Intuitively, this bounds the probability ratio of an observed output $o$ being the result of inputs $x$ or $y$ to some function $f$.
+While the hashing metric in equation~\ref{eqn:hash_collision} does not give a hard bound, it instead allows the evaluation of privacy leakage and the clear separation of time series into ranked buckets by varying distance parameter $r$.
+
+Consider a hash family $\mathcal{H}$ which approximates a metric for time series distance and is parametrizable by distance threshold $r$ for collision probability (see properties (\ref{itm:first}), (\ref{itm:second}), and (\ref{itm:third}) in Section~\ref{sec:intro}).
+%The key property of $h_r \in \mathcal{H}_r$ is that $\Pr[h_r(x) = h_r(y)]$ approximates $\kappa(x,y) < r$, where $\kappa(\cdot,\cdot)$ is the kernel function.
+
+Let $\mathcal{R} = \{r_1, r_2, \ldots\}$ be a set of stratifying distance thresholds, and let $S$ be the space of all possible time series.
+Define an equivalence relation $\sim_r$ on $S$ where $x \sim_r y \Leftrightarrow \kappa(x,y) < r$.
+Then, $\pi_r$ is a projection mapping of $\sim_r$ such that $\pi_r \colon X \rightarrow X/\sim_r$, where $\pi_r(x) = \pi_r(y)$ iff $\kappa(x,y) < r$.
+
+Iteratively applying LSH with hash functions $h_r \in \mathcal{H}_r~\forall r\in \mathcal{R}$ will approximate the projections $\pi_r$ for each threshold.
+Let $L_r = \{[h_r(x)], \ldots \}$ be the set of LSH buckets (the set unique hash mappings of $h_r$).
+If $h_r \approx \pi_r$, then $L_r$ will closely approximate the quotient $X/\sim_r$ and thus $\{L_r | r \in \mathcal{R} \} \approx \{X/\sim_r\}$.
+
+\subsection{Anomaly Detection}
+\label{subsec:anomaly_detection}
+
+What this theory describes is that similar time series can be grouped together and ranked by their closeness by kernel function $\kappa$~\cite{Hachiya13-NSH}.
+In the context of anomaly detection, we can apply this scheme to a set of \textit{normal} traces (time series of utilization, label encoded syscalls, etc.) to determine what thresholds and buckets constitute normal execution with a finer granularity.
+Instead of a binary label of \textit{normal} vs \textit{anomalous}, we can instead stratify applications by types of execution.
+We speculate that this makes our detection algorithm more robust to adversarial interference.
+
+Given the initial LSH bucketing of normal traces, we can continuously apply the hashing scheme to testing traces over a rolling window to categorize their behavior.
+Traces which do not match enough previously ``normal'' buckets over the set of thresholds may be considered to represent anomalous activity.
+
+
+\subsection{Unsupervised, Intelligent Adversary}
+
+A similar approach to Section~\ref{subsec:anomaly_detection} can be applied without a predetermined training set for time series classification through clustering.
+Adjusting the set of threshold values confers the notion of closeness, which may be used to determine which sets of output traces resulted from the same input to a program, for example.
+
+\section{Proposed Metrics}
+
+Consider the Minkowski distance:
+
+\begin{align*}
+    M(x,y) = {(\sum\limits_k |x_k - y_k|^p)}^{1/p}
+\end{align*}
+
+For $p \ge 1$, $M(\cdot,\cdot)$ is a metric due to Minkowski's inequality~\cite[p. 190]{wheeden15-measure}.
+Additionally, for $p = 2$, this is the standard Euclidean distance.
+Like the Euclidean distance, this distance metric fails to account for phase and shape changes between time series.
+
+To this end, we consider two different metrics based on a $p$-dimensional Minkowski distance.
+The first is due to Batista et al.~\cite{batista14-cid} which attempts to account for time series complexity and has been shown to greatly improve the mean accuracy rates of time series comparison~\cite{giusti13-ecd}.
+Consider the following \textit{complexity measure}:
+
+\begin{align*}
+    C(x) = \sqrt{\sum\limits_i {(q_i - q_{i+1})}^2} \numberthis
+\end{align*}
+
+Using this complexity measure, we define a \textit{complexity-invariant} distance metric based on the Minkowski distance $M(\cdot,\cdot)$:
+
+\begin{align*}
+    d(x,y) = M(x,y) * \frac{\max(C(x),C(y))}{\min(C(x),C(y))} \numberthis
+\end{align*}
+
+The second metric we consider attempts to correlate Minkowski distance across time with an additional penalty term for time series which are out of phase:
+
+\begin{align*}
+    d(x,y) = \min\limits_{i,j<\frac{n}{2}} \{ M(x[i:N],y[j:N]) + c*(i+j) \} \numberthis \\
+\end{align*}
+
+where $x,y$ have length $n$ and $N = n - \max(i,j)$.
+$c$ is a scalar penalty factor for out of phase alignment between $x$ and $y$.
+
+For both of these metrics, we consider $p$-dimensional Minkowski distance where the original time series have length $p$.
+
+\subsection{Proposed Hash}
+
+Let $S$ be the space of $n$-point time series to be processed.
+Pick $a$ random lines in $\mathbb{R}^2$ and project each point $x_i$ onto each line $h_k$.
+Each line will be partitioned into buckets of size $\frac{r}{n}$ (here, we see the parametrization of the hash).
+In practice, we fix a number $M$ (say, $2^{32}$), and apply $h_r(x) = \frac{\pi(x)*n}{r} \bmod M$. 
+
+Points are considered to intersect if they hash to the same bucket on a fixed number of hash function.
+We propose that the number of hash functions on which points must collide to determine intersection be a tunable parameter.
+Time series which intersect on more than $\frac{n}{2}$ points (in time order) are said to be candidate pairs for $r$-closeness.
+
+\section{Key Takeaways}
 
 \begin{itemize}
-    \item Use hash that approximates time series distance~\cite{Hachiya13-NSH,Kale14-KLSH}.
-    \item Compose multiple kernels or hash families to obtain ranked ``normality'' metric to be used in classification or normality (anomaly) detection~\cite{Kim16-SLSH}.
+    \item Use hash that approximates time series distance.
+    \item Compose multiple kernels or hash families to obtain ranked ``normality'' metric.
+    \item Apply ranking to classification by an unsupervised classifier to determine amount of leakage possible without prior knowledge.
+    \item Apply ranking to normality (anomaly) detection.
     \item Perform continuous hashing on rolling windows of execution across channels of multiple resources to classify activity in real-time.
+    \item To be considered: Overlay results with ShapeGD\@.
 \end{itemize}
 
 \bibliographystyle{unsrt}
