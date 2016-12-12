@@ -41,7 +41,7 @@
 \renewcommand{\todo}[1]{{\color{red} TODO\@: {#1}}}
 
 \setlength{\droptitle}{-8em}
-\title{Ranked Leakage Sensitive Hashing}
+\title{Ranked Leakage-Sensitive Hashing}
 \author{Rohith Prakash}
 \date{}
 
@@ -92,8 +92,11 @@ To increase the effectiveness of an LSH technique, the gap between $p_1$ and $p_
     \begin{enumerate}[(i)]
         \item \textbf{AND construction:} Define $\mathcal{H}' : S \rightarrow U^r$ such that for $h' \in \mathcal{H}'$, $h' = [h_1, \ldots, h_r] \subset \mathcal{H}$.
             $h'(x) = h'(y)$ iff $h_i(x) = h_i(y) ~\forall~h_i \in h'$
+            $\mathcal{H'}$ is a $(r_1, r_2, p_1^r, p_2^r)$-sensitive LSH family
         \item \textbf{OR construction:} Define $\mathcal{H}' : S \rightarrow U^b$ such that for $h' \in \mathcal{H}'$, $h' = [h_1, \ldots, h_b] \subset \mathcal{H}$.
             $h'(x) = h'(y)$ iff $h_i(x) = h_i(y)$ for any $h_i \in h'$
+            $\mathcal{H'}$ is a $(r_1, r_2, 1-{(1-p_1)}^b, 1-{(1-p_2)}^b)$-sensitive LSH family
+        \item \textbf{AND-OR composition:} The composition of \textnormal{and} with \textnormal{or} constructions defines a $(r_1, r_2, 1-{(1-p_1^r)}^b, 1-{(1-p_2^r)}^b)$-sensitive LSH family
     \end{enumerate}
 \end{definition}
 
@@ -103,41 +106,49 @@ We expand on this intuition by considering a hashing family $\mathcal{H}$ and ha
 
 \begin{enumerate}[*]
     \item\label{itm:hash_def3}
-        A family $\mathcal{H}_r$ obeys the triangle inequality w.r.t. $d(\cdot,\cdot)$ such that it strictly obeys Definition~\ref{def:hash_family} for a set of distances $R$.
-        In other words, $\mathcal{H}_r$ is a $(r_i,r_i,p_1,p_2)$-sensitive hash family for every $r_i \in R$.
+        A set of families ${\{\mathcal{H}_r\}}_{r\in R}$ obeys the triangle inequality w.r.t. $d(\cdot,\cdot)$ such that it strictly obeys Definition~\ref{def:hash_family} for a set of distances $R$.
 \end{enumerate}
 
-In summary, we are now considering a \textit{ranked} LSH family with the following properties:
+\begin{definition}\label{defn:ranked_lsh}
+    A set of hash families ${\{\mathcal{H}_r\}}_{r\in R}$ is a ranked LSH family if it is a $(r,r,p_1,p_2)$-sensitive hash family for every $r \in R$.
+    Denote such a family as a $(R,p_1,p_2)$-sensitive LSH family $\mathcal{H}_R$.
+\end{definition}
+
+In summary, we are now considering a \textit{ranked LSH family} with the following properties:
 \begin{proposition}\label{prop:ranked_lsh}
-    There exists a hash family $\mathcal{H}_r$ such that the following three hold:
+    There exists $(R,p_1,p_2)$-sensitive ranked LSH family $\mathcal{H}_R$ such that the following three hold:
     \begin{enumerate}[(i)]
-        \item\label{itm:first} $h \in \mathcal{H}_r$ \textit{collides} with high probability if $x$ and $y$ are ``close'' ($d(x,y) < r \Rightarrow \Pr[h(x) = h(y)] \ge p_1$)
-        \item\label{itm:second} $h \in \mathcal{H}_r$ has few \textit{false collisions}: If $d(x,y) > r$, $\Pr[h(x) = h(y)] < p_2$ for some fixed, small $p_2$.
-        \item\label{itm:third} $\mathcal{H} = {\{\mathcal{H}_r\}}_{r\in R}$ obeys (\ref{itm:first}) and (\ref{itm:second}) for any finite $R$.
+        \item\label{itm:first} $h \in \mathcal{H}_r \in \mathcal{H}_R$ collides with high probability if $y \in B_r(x)$: $d(x,y) < r \Rightarrow \Pr[h(x) = h(y)] \ge p_1 p_2$.
+        \item\label{itm:second} $h \in \mathcal{H}_r \in \mathcal{H}_R$ has few false collisions: If $d(x,y) > r$, $\Pr[h(x) = h(y)] < p_2$.
     \end{enumerate}
 \end{proposition}
 
 Properties (\ref{itm:first}) and (\ref{itm:second}) corroborate the notion of closeness to collision probabilities, which allows for the grouping of similar time series.
-Property (\ref{itm:third}) allows for an iterative hashing scheme to \textit{rank} the probabilities of closeness based on the varied parameter $r$.
+Due to Definition~\ref{defn:ranked_lsh}, we may apply iterative hashing scheme to \textit{rank} the probabilities of closeness based on the varied parameter $r$.
 We discuss this in greater depth in Section~\ref{subsec:ranked_lsh}
 
 \subsection{Distance Metric}
-Denote the space of a time series as $S$, and define a function $d$:
+Denote the space of a time series as $S$, and define a metric $d$:
 
 \begin{align*}
     d \colon S^2 &\to \mathbb{R}_{+}\\
     (x,y) &\mapsto r \numberthis
 \end{align*}
 
-Where $d$ maps a portion of two time series to a non-negative real number that represents the distance between the partial time series.
-
-Additionally, we require $d$ to actually be a metric~\cite{rosenlicht68-realanalysis}:
+Where $d$ maps two time series to a non-negative real number that represents some notion of distance between them.
+Since $d$ is a metric, it obeys the triangle inequality~\cite{rosenlicht68-realanalysis}:
 
 \begin{align*}
-    d(x,y) = 0 \Leftrightarrow x = y \\
-    d(x,y) = d(y,x) \ge 0 \\
     d(x,y) \le d(x,z) + d(z,y) \numberthis
 \end{align*}
+
+% What do we need from this metric?
+
+The function $d(\cdot,\cdot)$ helps define in our model what may be considered as information leakage.
+
+% Why triangle inequality is important for ranking
+
+% Discussion of time series comparison for leakage, in general
 
 Simple Euclidean distance will not suffice, as it has many limitations for time series comparison~\cite{weighted-dtw}.
 Dynamic Time Warping (DTW) presents a much more accurate method for comparing time series, but it does not satisfy the triangle inequality and is thus not a metric.
