@@ -64,15 +64,48 @@ We show that this can determine the effectiveness of leakage prevention schemes 
 \section{Background and Definitions}
 \label{sec:definitions}
 
+% Definition of leakage
 % Hashing
 % LSH hash family
+% Anomaly detection-specific:
 % Distance metric
 %
+\subsection{Information Leakage}
+\label{subsec:information_leakage}
+Side channel exploitation, anomaly detection, and covert channel communication are problems of detecting or exploiting leakage over information channels.
+Side and covert channels exists when observable differences in system behavior occur as the result of actions performed by a \textit{victim} or sending process.
+These attacks typically involve an adversary learning secret information over the channel, based on the behavior of a victim process.
+Anomaly detection, on the other hand, involves detectors running on a system analyzing and categorizing observed behavior in real time.
+In this setting, a malicious program leaks information about its behavior through an observed channel.
 
-Hashing has long been used as a method of easing the curse of dimensionality when performing costly pairwise computations on a large set of high-dimensional data~\cite{Indyk98-ANN,Gionis99-SSH,Datar04-LSH}.
-By exploiting the probabilistic nature and the computational efficiency of hashing, it is possible perform approximations to difficult high-dimensional problems quickly and in real-time.
+%To formally define information leakage and the ability to exploit or thwart leakage, 
+We consider a single information channel as a sequence of observations of a system resource --- a \textit{time series} of resource observations.
+For example, the \textit{trace} of system calls on a system over time is an $n$-dimensional time series, where each observation determines the number of times each of the $n$ system calls was invoked.
+
+Our primary observation with regards to time series leakage is that information may only be learned from time series observations if the underlying distributions are distinguishable.
+
+\begin{definition}\label{defn:dist_leakage}
+    \textbf{Distribution-based leakage:} Consider two distinct program behaviors $x$ and $x'$ and resulting time series for each behavior drawn from $D_x$ and $D_{x'}$ respectively.
+    Let $t(x)$ and $t(x')$ be two time series resulting from behaviors $x, x'$, drawn from $D_x, D_{x'}$ respectively.
+    Observing $t(x)$ and $t(x')$ can only leak information about $x$ and $x'$ if $D_x$, $D_{x'}$ are statistically distinguishable by some metric $d$.
+\end{definition}
+
+While Definition~\ref{defn:dist_leakage} is useful when one can carefully observe many samples from different distributions to assess the distinguishability of the underlying distributions, it is difficult to use in practice.
+Instead, we propose a slightly different definition of leakage:
+
+\begin{definition}\label{defn:leakage}
+	\textbf{Time series leakage:} Consider two distinct program behaviors $x$ and $x'$ with output distributions $D_x$ and $D_{x'}$, and let $d(\cdot,\cdot)$ be a metric on space of output time series.
+	Let $\{t_k(x)\}$ be a sequence of time series drawn from $D_x$.
+	Define $r$ as the minimum distance such that $d(t_i(x), t_j(x)) \le r~\forall~t_i,t_j$
+
+	We say that observing time series $t(x)$ and $t(x')$ can leak information about $x$ and $x'$ if $d(x,x') > r$.
+\end{definition}
 
 \subsection{Hashing}
+\label{subsec:hashing}
+Hashing has long been used as a method of easing the curse of dimensionality for tasks such as clustering on a large set of high-dimensional data~\cite{Indyk98-ANN,Gionis99-SSH,Datar04-LSH}.
+By exploiting the probabilistic nature and the computational efficiency of hashing, it is possible perform approximations to difficult high-dimensional problems quickly and in real-time.
+
 Consider the space of time series $S$ and a distance metric $d$ on $S$.
 A LSH family is defined as such:
 
