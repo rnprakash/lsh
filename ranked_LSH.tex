@@ -83,23 +83,27 @@ We consider a single information channel as a sequence of observations of a syst
 For example, the \textit{trace} of system calls on a system over time is an $n$-dimensional time series, where each observation determines the number of times each of the $n$ system calls was invoked.
 
 Our primary observation with regards to time series leakage is that information may only be learned from time series observations if the underlying distributions are distinguishable.
+If  
 
 \begin{definition}\label{defn:dist_leakage}
     \textbf{Distribution-based leakage:} Consider two distinct program behaviors $x$ and $x'$ and resulting time series for each behavior drawn from $D_x$ and $D_{x'}$ respectively.
     Let $t(x)$ and $t(x')$ be two time series resulting from behaviors $x, x'$, drawn from $D_x, D_{x'}$ respectively.
-    Observing $t(x)$ and $t(x')$ can only leak information about $x$ and $x'$ if $D_x$, $D_{x'}$ are statistically distinguishable by some metric $d$.
+    Observing $t(x)$ and $t(x')$ can only leak information about $x$ and $x'$ if $D_x$, $D_{x'}$ are statistically distinguishable.
 \end{definition}
 
 While Definition~\ref{defn:dist_leakage} is useful when one can carefully observe many samples from different distributions to assess the distinguishability of the underlying distributions, it is difficult to use in practice.
 Instead, we propose a slightly different definition of leakage:
 
 \begin{definition}\label{defn:leakage}
-	\textbf{Time series leakage:} Consider two distinct program behaviors $x$ and $x'$ with output distributions $D_x$ and $D_{x'}$, and let $d(\cdot,\cdot)$ be a metric on space of output time series.
-	Let $\{t_k(x)\}$ be a sequence of time series drawn from $D_x$.
-	Define $r$ as the minimum distance such that $d(t_i(x), t_j(x)) \le r~\forall~t_i,t_j$
+	\textbf{Time series leakage:} Consider two distinct program behaviors $x$ and $x'$ with output distributions $D_x$ and $D_{x'}$, and let $d(\cdot,\cdot)$ be a distance function on space of output time series.
+    Let $T_x = \{t_k\}$ be a sequence of time series drawn from $D_x$.
+    Define $r$ as the minimum distance such that $d(t_i, t_j) \le r~\forall~t_i,t_j \in T_x$
 
-	We say that observing time series $t(x)$ and $t(x')$ can leak information about $x$ and $x'$ if $d(x,x') > r$.
+    We say that observing time series $t(x)$ and $t(x')$ can \textbf{leak information with respect to $d(\cdot,\cdot)$} about $x$ and $x'$ if $d(t(x),t(x')) > r$.
 \end{definition}
+
+Definition~\ref{defn:leakage} describes time series leakage with respect to a specific distance function applied on observation points.
+If time series resulting from behavior $x$ can be separated from time series from $x'$ by a distance of more than $r$, there is potential information leakage through this channel.
 
 \subsection{Hashing}
 \label{subsec:hashing}
