@@ -1,6 +1,6 @@
 \documentclass[a4paper]{article}
 \usepackage[margin=1.5in]{geometry}
-\usepackage{parskip,amsmath,mathtools,amssymb,amsfonts}
+\usepackage{parskip,amsmath,mathtools,amssymb,amsfonts,mathrsfs}
 \usepackage{enumerate}
 \usepackage{url,titling}
 %\usepackage{ulem}
@@ -108,9 +108,9 @@ If time series resulting from behavior $x$ can be separated from time series fro
 \subsection{Hashing}
 \label{subsec:hashing}
 Hashing has long been used as a method of easing the curse of dimensionality for tasks such as clustering on a large set of high-dimensional data~\cite{Indyk98-ANN,Gionis99-SSH,Datar04-LSH}.
-By exploiting the probabilistic nature and the computational efficiency of hashing, it is possible perform approximations to difficult high-dimensional problems quickly and in real-time.
+Exploiting the probabilistic nature and the computational efficiency of hashing enables approximations to difficult high-dimensional problems quickly and in real-time.
 
-Consider the space of time series $S$ and a distance metric $d$ on $S$.
+Consider the space of time series $S$ and a distance function $d$ on $S$.
 A LSH family is defined as such:
 
 \begin{definition}\label{def:hash_family}
@@ -127,41 +127,50 @@ To increase the effectiveness of an LSH technique, the gap between $p_1$ and $p_
 \begin{definition}\label{def:lsh_amplification}
     Consider a $(r_1, r_2, p_1, p_2)$-sensitive hash family $\mathcal{H}$ w.r.t $d(\cdot,\cdot)$. The LSH hash family can be amplified in the following ways:
     \begin{enumerate}[(i)]
-        \item \textbf{AND construction:} Define $\mathcal{H}' : S \rightarrow U^r$ such that for $h' \in \mathcal{H}'$, $h' = [h_1, \ldots, h_r] \subset \mathcal{H}$.
+        \item \textbf{AND construction:} Define $\mathcal{H}' = \{h' : S \rightarrow U^r\}$ such that $h' = [h_1, \ldots, h_r] \subset \mathcal{H}$.
             $h'(x) = h'(y)$ iff $h_i(x) = h_i(y) ~\forall~h_i \in h'$
             $\mathcal{H'}$ is a $(r_1, r_2, p_1^r, p_2^r)$-sensitive LSH family
-        \item \textbf{OR construction:} Define $\mathcal{H}' : S \rightarrow U^b$ such that for $h' \in \mathcal{H}'$, $h' = [h_1, \ldots, h_b] \subset \mathcal{H}$.
+        \item \textbf{OR construction:} Define $\mathcal{H}' = \{h' : S \rightarrow U^b\}$ such that $h' = [h_1, \ldots, h_b] \subset \mathcal{H}$.
             $h'(x) = h'(y)$ iff $h_i(x) = h_i(y)$ for any $h_i \in h'$
             $\mathcal{H'}$ is a $(r_1, r_2, 1-{(1-p_1)}^b, 1-{(1-p_2)}^b)$-sensitive LSH family
         \item \textbf{AND-OR composition:} The composition of \textnormal{and} with \textnormal{or} constructions defines a $(r_1, r_2, 1-{(1-p_1^r)}^b, 1-{(1-p_2^r)}^b)$-sensitive LSH family
     \end{enumerate}
 \end{definition}
 
-We consider hash families $\mathcal{H} : S \rightarrow \mathbb{R}_{+}$ such that $h \in \mathcal{H}$ approximates $d(\cdot,\cdot)$ on time series.
-Intuitively, time series which are ``closer'' to each other (as defined by some metric $d$) will be harder to distinguish by any arbitrary classifier and thus present fewer possibilities for information leakage.
-We expand on this intuition by considering a hashing family $\mathcal{H}$ and hashing function $h \in \mathcal{H}$ which has the following property:
+We consider hash families $\mathcal{H} = \{h : S \rightarrow \mathbb{R}_{+}^n\}$ such that $h \in \mathcal{H}$ approximates $d(\cdot,\cdot)$ on time series in $S$.
+Intuitively, time series which are ``closer'' to each other (as defined by $d$) will be harder to distinguish by any arbitrary classifier and thus present fewer possibilities for information leakage.
+We expand on this intuition by considering a hashing family $\mathcal{H}$ and hashing function $h \in \mathcal{H}$ which has the following property $\mathscr{A}$:
 
-\begin{enumerate}[*]
-    \item\label{itm:hash_def3}
-        A set of families ${\{\mathcal{H}_r\}}_{r\in R}$ obeys the triangle inequality w.r.t. $d(\cdot,\cdot)$ such that it strictly obeys Definition~\ref{def:hash_family} for a set of distances $R$.
-\end{enumerate}
-
-\begin{definition}\label{defn:ranked_lsh}
-    A set of hash families ${\{\mathcal{H}_r\}}_{r\in R}$ is a ranked LSH family if it is a $(r,r,p_1,p_2)$-sensitive hash family for every $r \in R$.
-    Denote such a family as a $(R,p_1,p_2)$-sensitive LSH family $\mathcal{H}_R$.
+\begin{definition}\label{def:property_alpha}
+    Property $\mathscr{A}$:
+    Two hash families $\mathcal{H}_{r_1}, \mathcal{H}_{r_2}$ ($r_1 \le r_2$ \textnormal{WLOG}) have property $\mathscr{A}$ if they are $(r_1, r_1, p1, p1)$ and $(r_2, r_2, p2, p2)$-sensitive respectively and the following holds:
+    If $h_{r_1}(x) = h_{r_1}(y)$, then $\Pr[h_{r_2}(x) = h_{r_2}(y)] \ge \max(p_1,p_2)$
 \end{definition}
 
-In summary, we are now considering a \textit{ranked LSH family} with the following properties:
+Note that the function $d(\cdot,\cdot)$ used in constructing an LSH family need not be a proper metric, but property~$\mathscr{A}$ requires that $d(\cdot,\cdot)$ be sub-additive.
+
+Definition~\ref{def:property_alpha} allows for a stratified LSH scheme using a set of LSH families index by a distance $r$ which allows us to confer a notion of closeness between buckets of a lower LSH strata.
+
+\begin{definition}\label{defn:ranked_lsh}
+    A set of hash families ${\{\mathcal{H}_r\}}_{r\in R}$ is a ranked LSH family if $H_r$ has property $\mathscr{A}~\forall~r\in R$.
+    Denote such a set of families as $(R,p)$-sensitive LSH families $\mathcal{H}_R$, where $p = \inf\{ p_i | H_{r_1}$ is $(r_1,r_1,p_i,p_i)$-sensitive $\}$.
+\end{definition}
+
+%In summary, we are now considering a \textit{ranked LSH family} with the following properties:
 \begin{proposition}\label{prop:ranked_lsh}
-    There exists $(R,p_1,p_2)$-sensitive ranked LSH family $\mathcal{H}_R$ such that the following three hold:
+    There exists $(R,p)$-sensitive ranked LSH families $\mathcal{H}_R = {\{\mathcal{H}_r\}}_{r\in R}$ such that the following hold:
     \begin{enumerate}[(i)]
-        \item\label{itm:first} $h \in \mathcal{H}_r \in \mathcal{H}_R$ collides with high probability if $y \in B_r(x)$: $d(x,y) < r \Rightarrow \Pr[h(x) = h(y)] \ge p_1 p_2$.
-        \item\label{itm:second} $h \in \mathcal{H}_r \in \mathcal{H}_R$ has few false collisions: If $d(x,y) > r$, $\Pr[h(x) = h(y)] < p_2$.
+        \item\label{itm:first}
+            $h \in \mathcal{H}_r \in \mathcal{H}_R$ collides with high probability if $y \in B_r(x)$: $d(x,y) < r \Rightarrow \Pr[h(x) = h(y)] \ge p$.
+        \item\label{itm:second}
+            $h \in \mathcal{H}_r$ has few false collisions: If $d(x,y) > r$, $\Pr[h(x) = h(y)] < p$.
+        \item\label{itm:rank_property}
+            Property $\mathscr{A}$ holds for any two families $\mathcal{H}_{r_1}, \mathcal{H}_{r_2} \in \mathcal{H}_R$.
     \end{enumerate}
 \end{proposition}
 
-Properties (\ref{itm:first}) and (\ref{itm:second}) corroborate the notion of closeness to collision probabilities, which allows for the grouping of similar time series.
-Due to Definition~\ref{defn:ranked_lsh}, we may apply iterative hashing scheme to \textit{rank} the probabilities of closeness based on the varied parameter $r$.
+Proposition~\ref{prop:ranked_lsh} corroborates the notion of closeness to collision probabilities, which allows for the grouping of similar time series.
+Due to Property~$\mathscr{A}$, we may apply iterative hashing scheme to \textit{rank} the probabilities of closeness based on the varied parameter $r$.
 We discuss this in greater depth in Section~\ref{subsec:ranked_lsh}
 
 \subsection{Distance Metric}
