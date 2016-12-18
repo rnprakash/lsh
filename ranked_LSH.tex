@@ -48,6 +48,12 @@
 \begin{document}
 \maketitle{}
 
+\begin{abstract}
+    In this paper, we study the problem of real-time anomaly detection of intelligent malware samples disguised within benign applications. 
+    We demonstrate that commonly used Dynamic Time Warping (DTW) distance is not suitable on time series of system resource traces when malware samples dynamically adapt their behavior to evade to evade detection.
+    To deal with malware samples in real-time which attempt to hide within benign behavior, we propose a new LSH-based scheme that has low hardware and complexity overhead, iteratively hashes time series based on \textit{behavioral patterns}, triangulates hashing buckets to better categorize behavior, and is able to categorize new, previously unobserved behavior.
+\end{abstract}
+
 \section{Introduction}
 \label{sec:intro}
 
@@ -69,7 +75,7 @@ We show that this can determine the effectiveness of leakage prevention schemes 
 % LSH hash family
 % Anomaly detection-specific:
 % Distance metric
-%
+
 \subsection{Information Leakage}
 \label{subsec:information_leakage}
 Side channel exploitation, anomaly detection, and covert channel communication are problems of detecting or exploiting leakage over information channels.
@@ -83,7 +89,6 @@ We consider a single information channel as a sequence of observations of a syst
 For example, the \textit{trace} of system calls on a system over time is an $n$-dimensional time series, where each observation determines the number of times each of the $n$ system calls was invoked.
 
 Our primary observation with regards to time series leakage is that information may only be learned from time series observations if the underlying distributions are distinguishable.
-If  
 
 \begin{definition}\label{defn:dist_leakage}
     \textbf{Distribution-based leakage:} Consider two distinct program behaviors $x$ and $x'$ and resulting time series for each behavior drawn from $D_x$ and $D_{x'}$ respectively.
@@ -113,7 +118,7 @@ Exploiting the probabilistic nature and the computational efficiency of hashing 
 Consider the space of time series $S$ and a distance function $d$ on $S$.
 A LSH family is defined as such:
 
-\begin{definition}\label{def:hash_family}
+\begin{definition}\label{defn:hash_family}
     A hash family $\mathcal{H} = \{ h : S \rightarrow U \}$ is called $(r_1, r_2, p_1, p_2)$-sensitive w.r.t. $d(\cdot,\cdot)$ if for any $x,y \in S$
     \begin{enumerate}[(i)]
         \item\label{itm:hash_def1} If $d(x,y) \le r_1$, then $\Pr[h(x) = h(y)] \ge p_1$
@@ -124,7 +129,7 @@ A LSH family is defined as such:
 Such a family is only interesting if $p_1 > p_2$.
 To increase the effectiveness of an LSH technique, the gap between $p_1$ and $p_2$ may be \textit{amplified}:
 
-\begin{definition}\label{def:lsh_amplification}
+\begin{definition}\label{defn:lsh_amplification}
     Consider a $(r_1, r_2, p_1, p_2)$-sensitive hash family $\mathcal{H}$ w.r.t $d(\cdot,\cdot)$. The LSH hash family can be amplified in the following ways:
     \begin{enumerate}[(i)]
         \item \textbf{AND construction:} Define $\mathcal{H}' = \{h' : S \rightarrow U^r\}$ such that $h' = [h_1, \ldots, h_r] \subset \mathcal{H}$.
@@ -141,29 +146,34 @@ We consider hash families $\mathcal{H} = \{h : S \rightarrow \mathbb{R}_{+}^n\}$
 Intuitively, time series which are ``closer'' to each other (as defined by $d$) will be harder to distinguish by any arbitrary classifier and thus present fewer possibilities for information leakage.
 We expand on this intuition by considering a hashing family $\mathcal{H}$ and hashing function $h \in \mathcal{H}$ which has the following property $\mathscr{A}$:
 
-\begin{definition}\label{def:property_alpha}
+% Can we make any claims about the reverse:
+% Collision -> probability of collision with higher distance?
+% This allows us to triangulate: you gain information about a "higher" hash family from a "lower" one
+
+\begin{definition}\label{defn:property_alpha}
     Property $\mathscr{A}$:
-    Two hash families $\mathcal{H}_{r_1}, \mathcal{H}_{r_2}$ ($r_1 \le r_2$ \textnormal{WLOG}) have property $\mathscr{A}$ if they are $(r_1, r_1, p1, p1)$ and $(r_2, r_2, p2, p2)$-sensitive respectively and the following holds:
-    If $h_{r_1}(x) = h_{r_1}(y)$, then $\Pr[h_{r_2}(x) = h_{r_2}(y)] \ge \max(p_1,p_2)$
+    Two hash families $\mathcal{H}_{r_1}, \mathcal{H}_{r_2}$ ($r_1 \le r_2$ \textnormal{WLOG}) have property $\mathscr{A}$ if they are $(r_1, r_1, p_1, q_1)$ and $(r_2, r_2, p_2, q_2)$-sensitive respectively and the following holds:
+    If $h_{r_1}(x) = h_{r_1}(y)$, then $\Pr[h_{r_2}(x) = h_{r_2}(y)] > \max(1 - q_1, 1 - q_2)$
 \end{definition}
 
 Note that the function $d(\cdot,\cdot)$ used in constructing an LSH family need not be a proper metric, but property~$\mathscr{A}$ requires that $d(\cdot,\cdot)$ be sub-additive.
 
-Definition~\ref{def:property_alpha} allows for a stratified LSH scheme using a set of LSH families index by a distance $r$ which allows us to confer a notion of closeness between buckets of a lower LSH strata.
+Definition~\ref{defn:property_alpha} allows for a stratified LSH scheme using a set of LSH families index by a distance $r$ which allows us to confer a notion of closeness between buckets of a lower LSH strata.
 
 \begin{definition}\label{defn:ranked_lsh}
-    A set of hash families ${\{\mathcal{H}_r\}}_{r\in R}$ is a ranked LSH family if $H_r$ has property $\mathscr{A}~\forall~r\in R$.
-    Denote such a set of families as $(R,p)$-sensitive LSH families $\mathcal{H}_R$, where $p = \inf\{ p_i | H_{r_1}$ is $(r_1,r_1,p_i,p_i)$-sensitive $\}$.
+    A set of hash families ${\{\mathcal{H}_r\}}_{r\in R}$ is a ranked LSH family if any two $H_{r_1}, H_{r_2}$ have property $\mathscr{A}~\forall~r_1, r_2 \in R$.
+    Denote such a set of families as $(R,p_1, p_2)$-sensitive LSH families $\mathcal{H}_R$.
+    %, where $p = \inf\{ p_i | H_{r_1}$ is $(r_1,r_1,p_i,p_i)$-sensitive $\}$.
 \end{definition}
 
 %In summary, we are now considering a \textit{ranked LSH family} with the following properties:
 \begin{proposition}\label{prop:ranked_lsh}
-    There exists $(R,p)$-sensitive ranked LSH families $\mathcal{H}_R = {\{\mathcal{H}_r\}}_{r\in R}$ such that the following hold:
+    There exists $(R, p_1, p_2)$-sensitive ranked LSH families $\mathcal{H}_R = {\{\mathcal{H}_r\}}_{r\in R}$ such that the following hold:
     \begin{enumerate}[(i)]
         \item\label{itm:first}
-            $h \in \mathcal{H}_r \in \mathcal{H}_R$ collides with high probability if $y \in B_r(x)$: $d(x,y) < r \Rightarrow \Pr[h(x) = h(y)] \ge p$.
+            $h \in \mathcal{H}_r \in \mathcal{H}_R$ collides with high probability if $y \in B_r(x)$: If $d(x,y) < r, \Pr[h(x) = h(y)] \ge p_1$.
         \item\label{itm:second}
-            $h \in \mathcal{H}_r$ has few false collisions: If $d(x,y) > r$, $\Pr[h(x) = h(y)] < p$.
+            $h \in \mathcal{H}_r$ has few false collisions: If $d(x,y) > r$, $\Pr[h(x) = h(y)] < p_2$.
         \item\label{itm:rank_property}
             Property $\mathscr{A}$ holds for any two families $\mathcal{H}_{r_1}, \mathcal{H}_{r_2} \in \mathcal{H}_R$.
     \end{enumerate}
@@ -174,7 +184,7 @@ Due to Property~$\mathscr{A}$, we may apply iterative hashing scheme to \textit{
 We discuss this in greater depth in Section~\ref{subsec:ranked_lsh}
 
 \subsection{Distance Metric}
-Denote the space of a time series as $S$, and define a metric $d$:
+Denote the space of a time series as $S$, and define a function $d$:
 
 \begin{align*}
     d \colon S^2 &\to \mathbb{R}_{+}\\
@@ -182,7 +192,7 @@ Denote the space of a time series as $S$, and define a metric $d$:
 \end{align*}
 
 Where $d$ maps two time series to a non-negative real number that represents some notion of distance between them.
-Since $d$ is a metric, it obeys the triangle inequality~\cite{rosenlicht68-realanalysis}:
+Additionally, require $d$ to be sub-additive:
 
 \begin{align*}
     d(x,y) \le d(x,z) + d(z,y) \numberthis
@@ -190,18 +200,34 @@ Since $d$ is a metric, it obeys the triangle inequality~\cite{rosenlicht68-reala
 
 % What do we need from this metric?
 
-The function $d(\cdot,\cdot)$ helps define in our model what may be considered as information leakage.
+The function $d(\cdot,\cdot)$ defines leakage in our threat model.
+
+We consider an arbitrary classification attack on a set of time series.
+Applying Definitions~\ref{defn:dist_leakage} and~\ref{defn:leakage}, there is potential for leakage by observing the resulting time series if and only if the distributions that generate the time series differ on some statistic.
+% In this case, $d$ gives us a notion of distance that takes this statistic into consideration, a classifier considering $d$ can perform the attack
+
 
 % Why triangle inequality is important for ranking
+
+% Suppose d(x,y) > r1 but h(x) = h(y)
+% Then: let z = proj(y) onto B(r,x)
+% d(x,z) = r1
+% Then d(x,y) \le d(x,z) + d(z,y)
+% 
 
 % Discussion of time series comparison for leakage, in general
 
 Simple Euclidean distance will not suffice, as it has many limitations for time series comparison~\cite{weighted-dtw}.
 Dynamic Time Warping (DTW) presents a much more accurate method for comparing time series, but it does not satisfy the triangle inequality and is thus not a metric.
 We could leverage an approximate lower-bound DTW~\cite{Lemire09-DTW} as this satisfies the triangle inequality, but recent literature~\cite{Kulis12-KLSH,Jiang15-KLSH,Kim16-SLSH} provide additional metrics which have proven efficiency and accuracy in fields such as image processing and classification.
-Reproducing kernel Hilbert spaces have been studied with respect to locality sensitive hashing methods and may be of great use to this problem.
 
-\subsection{Reproducing Kernel Hilbert Space}
+% Discuss how kernel transforms give rise to RKHS?
+%Reproducing kernel Hilbert spaces have been studied with respect to locality sensitive hashing methods and may be of great use to this problem.
+
+
+%% This only matters when discussing kernel transforms - which I need to do but not sure how yet
+\iffalse{}
+\subsection{Kernel Transform}
 
 \textit{Reproducing kernel Hilbert spaces (RKHS)} are a Hilbert spaces (vector spaces over which inner products are defined) defined over functions with the following property:
 \begin{enumerate}[(i)]
@@ -212,6 +238,8 @@ We consider time series to be discrete-time functions in an arbitrary RKHS and l
 Since RKHS have a useful norm which intrinsically arises from their construction, we can leverage the norm in constructing a kernelized hash family to perform an explicit embedding.
 Note, however, that this norm is not necessarily a Euclidean, point-wise norm.
 The reverse, $|f(x)-g(x)| < \delta \Rightarrow \norm{f-g}_{H} < \epsilon$, need not be true in this space.
+
+\fi{}
 
 \section{Hashing model for privacy}
 
