@@ -119,7 +119,8 @@ Consider the space of time series $S$ and a distance function $d$ on $S$.
 A LSH family is defined as such:
 
 \begin{definition}\label{defn:hash_family}
-    A hash family $\mathcal{H} = \{ h : S \rightarrow U \}$ is called $(r_1, r_2, p_1, p_2)$-sensitive w.r.t. $d(\cdot,\cdot)$ if for any $x,y \in S$
+    \textbf{Hash family:}
+    A hash family $\mathcal{H} = \{ h : S \rightarrow U \}$ is called $(r_1, r_2, p_1, p_2)$-sensitive w.r.t. $d(\cdot,\cdot)$ if for any $x,y \in S, h \in \mathcal{H}$
     \begin{enumerate}[(i)]
         \item\label{itm:hash_def1} If $d(x,y) \le r_1$, then $\Pr[h(x) = h(y)] \ge p_1$
         \item\label{itm:hash_def2} If $d(x,y) \ge r_2$, then $\Pr[h(x) = h(y)] \le p_2$
@@ -130,6 +131,7 @@ Such a family is only interesting if $p_1 > p_2$.
 To increase the effectiveness of an LSH technique, the gap between $p_1$ and $p_2$ may be \textit{amplified}:
 
 \begin{definition}\label{defn:lsh_amplification}
+    \textbf{LSH Amplification:}
     Consider a $(r_1, r_2, p_1, p_2)$-sensitive hash family $\mathcal{H}$ w.r.t $d(\cdot,\cdot)$. The LSH hash family can be amplified in the following ways:
     \begin{enumerate}[(i)]
         \item \textbf{AND construction:} Define $\mathcal{H}' = \{h' : S \rightarrow U^r\}$ such that $h' = [h_1, \ldots, h_r] \subset \mathcal{H}$.
@@ -151,7 +153,7 @@ We expand on this intuition by considering a hashing family $\mathcal{H}$ and ha
 % This allows us to triangulate: you gain information about a "higher" hash family from a "lower" one
 
 \begin{definition}\label{defn:property_alpha}
-    Property $\mathscr{A}$:
+    \textbf{Property $\mathscr{A}$}:
     Two hash families $\mathcal{H}_{r_1}, \mathcal{H}_{r_2}$ ($r_1 \le r_2$ \textnormal{WLOG}) have property $\mathscr{A}$ if they are $(r_1, r_1, p_1, q_1)$ and $(r_2, r_2, p_2, q_2)$-sensitive respectively and the following holds:
     If $h_{r_1}(x) = h_{r_1}(y)$, then $\Pr[h_{r_2}(x) = h_{r_2}(y)] \le \max(1 - q_1, 1 - q_2)$
 \end{definition}
@@ -161,6 +163,7 @@ Note that the function $d(\cdot,\cdot)$ used in constructing an LSH family need 
 Definition~\ref{defn:property_alpha} allows for a stratified LSH scheme using a set of LSH families index by a distance $r$ which allows us to confer a notion of closeness between buckets of a lower LSH strata.
 
 \begin{definition}\label{defn:ranked_lsh}
+    \textbf{Ranked LSH families}:
     A set of hash families ${\{\mathcal{H}_r\}}_{r\in R}$ is a ranked LSH family if any two $H_{r_1}, H_{r_2}$ have property $\mathscr{A}~\forall~r_1, r_2 \in R$.
     Denote such a set of families as $(R,p_1, p_2)$-sensitive LSH families $\mathcal{H}_R$.
     %, where $p = \inf\{ p_i | H_{r_1}$ is $(r_1,r_1,p_i,p_i)$-sensitive $\}$.
@@ -223,23 +226,48 @@ Two time series which exhibit similar ``behavior'' but take values of a slightly
 Changes in background system activity could therefore affect the ability of these two measure to detect true anomalous activity.
 
 \subsection{Kernel Transforms}
-% Discuss how kernel transforms give rise to RKHS?
-%Reproducing kernel Hilbert spaces have been studied with respect to locality sensitive hashing methods and may be of great use to this problem.
+\label{subsec:kernel_transforms}
 
-\textit{Reproducing kernel Hilbert spaces (RKHS)} are a Hilbert spaces (vector spaces over which inner products are defined) defined over functions with the following property:
-\begin{enumerate}[(i)]
-    \item For any two functions $f,g \in H$ defined over $dom(f)$, $\norm{f-g}_{H} < \epsilon \Rightarrow |f(x)-g(x)| < \delta~\forall~x \in dom(f)$. 
-\end{enumerate}
+We have so far defined leakage with respect to an arbitrary, but fixed, distance measure.
+However, we now consider kernel transforms to define higher dimensional distance measures without explicitly defining the embedding space.
+This methodology allows us to determine a leakage-sensitive distance measure with computational efficiency.
 
-We consider time series to be discrete-time functions in an arbitrary RKHS and leverage kernelized LSH schemes~\cite{Kale14-KLSH,Jiang15-KLSH, Kulis12-KLSH} to perform our ranked hashing.
-Since RKHS have a useful norm which intrinsically arises from their construction, we can leverage the norm in constructing a kernelized hash family to perform an explicit embedding.
-Note, however, that this norm is not necessarily a Euclidean, point-wise norm.
-The reverse, $|f(x)-g(x)| < \delta \Rightarrow \norm{f-g}_{H} < \epsilon$, need not be true in this space.
+Kernel transforms have been used extensively in machine learning problems, especially in support vector machine (SVM) classifiers. 
+For example, a kernel transform allows the use of user-specified similarity functions that may be computationally intractable to fully define.
+However, kernel transforms have also been recently applied to hashing problems in order to tackle even higher dimensional similarity problems~\cite{Kulis12-KLSH, Kale14-KLSH, Jiang15-KLSH}.
+A kernel function $\kappa(\cdot,\cdot)$ thus defines a new similarity measure on a higher dimensional space over which we would not otherwise be able to efficiently hash.
+%Generalizing the hashing methodology to accept any similarity measure by using arbitrary kernel transforms allows for efficient 
 
+The following definitions let us formally define kernel transforms on time series:
+h
+\begin{definition}\label{defn:hilbert_space}
+    \textbf{Hilbert space}:
+    A vector space $X$ over a field $F$ with an inner product $\innerproduct{\cdot}{\cdot}: X \times X \rightarrow F$ that also defines a complete\footnote{A space $X$ is complete if every Cauchy sequence ($\{x_n\}_{n \in \mathbb{N}}, x_n \in X$) converges in $X$.} metric space is called a Hilbert space.
+\end{definition}
 
-\section{Hashing model for privacy}
+\begin{definition}\label{defn:kernel_trick}
+    \textbf{Kernel transform}:
+    Let $X$ be an arbitrary space and $H$ be a Hilbert space with inner product $\innerproduct{\cdot}{\cdot}_H$.
+    $\kappa(\cdot, \cdot): X \times X \rightarrow H$ is a kernel transform if $\kappa(x,y) = \innerproduct{\phi(x)}{\phi(y)}_H$ for some $\phi: X \rightarrow H$.
+\end{definition}
 
-Consider a database of $n$ samples $D = \{x_1,\ldots,x_n\} \subset \mathbb{R}^d$ with feature map:
+Note that in Definition~\ref{defn:kernel_trick}, the mapping function $\phi$ need not be explicitly defined.
+In fact, $\kappa$ being a positive-semidefinite function (or matrix over discrete spaces) implies the existence of a satisfactory function $\phi$.
+Thus, we can consider arbitrary higher-order distance measures as any positive-semidefinite mapping $\kappa: X \times X \rightarrow H$ guarantees a similarity measure in $H$.
+
+\begin{definition}\label{defn:rkhs}
+    \textbf{Reproducing kernel Hilbert space (RKHS)}:
+    Let $H$ be a Hilbert space of real-valued functions on an arbitrary set $X$.
+    $H$ is a reproducing kernel Hilbert space if there exists a \textbf{reproducing kernel} for all $x \in X$, $\kappa_x$, where $f(x) = \innerproduct{f}{\kappa_x}_H~\forall~f \in H$.
+\end{definition}
+
+Note that $\kappa(x,y) = \innerproduct{\kappa_x}{\kappa_y}_H$, and thus the kernel transform in Definition~\ref{defn:kernel_trick} defines a RKHS.
+We have thus demonstrated that we can consider arbitrary higher-order similarity measures using kernel functions on the space of observed samples.
+
+\section{Hashing model}
+\label{sec:hashing}
+
+Consider a set of $n$ samples $D = \{x_1,\ldots,x_n\} \subset \mathbb{R}^d$ with feature map:
 
 \begin{align*}
     \Phi \colon \mathbb{R}^d &\to \mathcal{H} \numberthis
