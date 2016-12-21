@@ -50,14 +50,14 @@
 
 \begin{abstract}
     In this paper, we study the problem of real-time anomaly detection of intelligent malware samples disguised within benign applications. 
-    We demonstrate that commonly used Dynamic Time Warping (DTW) distance is not suitable on time series of system resource traces when malware samples dynamically adapt their behavior to evade to evade detection.
+    We demonstrate that commonly used Dynamic Time Warping (DTW) distance is not suitable on time series of system resource traces when malware samples dynamically adapt their behavior to evade detection.
     To deal with malware samples in real-time which attempt to hide within benign behavior, we propose a new LSH-based scheme that has low hardware and complexity overhead, iteratively hashes time series based on \textit{behavioral patterns}, triangulates hashing buckets to better categorize behavior, and is able to categorize new, previously unobserved behavior.
 \end{abstract}
 
 \section{Introduction}
 \label{sec:intro}
 
-Time series are used almost ubiquitously to represent time-based measurements from any number of avenues.
+Time series are used almost ubiquitously to represent time-based measurements in various fields.
 However, it is a well known problem that when these times series represent behavior-related observations of complex systems, unintended information about the system may be leaked through this channel~\cite{DBLP:conf/ccs/RistenpartTSS09,DBLP:conf/sp/ZhangJOR11}.
 This problem of side channel leakage has been extensively studied in the past by, and others have proposed correlation-based measures to quantify the amount of leakage~\cite{demme2012,zhang2013}.
 
@@ -229,21 +229,23 @@ Changes in background system activity could therefore affect the ability of thes
 \label{subsec:kernel_transforms}
 
 We have so far defined leakage with respect to an arbitrary, but fixed, distance measure.
-However, we now consider kernel transforms to define higher dimensional distance measures without explicitly defining the embedding space.
+However, we now consider kernel transforms to define higher dimensional distance measures without explicitly defining the embedding space~\cite{Scholkopf00}.
 This methodology allows us to determine a leakage-sensitive distance measure with computational efficiency.
 
 Kernel transforms have been used extensively in machine learning problems, especially in support vector machine (SVM) classifiers. 
 For example, a kernel transform allows the use of user-specified similarity functions that may be computationally intractable to fully define.
 However, kernel transforms have also been recently applied to hashing problems in order to tackle even higher dimensional similarity problems~\cite{Kulis12-KLSH, Kale14-KLSH, Jiang15-KLSH}.
 A kernel function $\kappa(\cdot,\cdot)$ thus defines a new similarity measure on a higher dimensional space over which we would not otherwise be able to efficiently hash.
-%Generalizing the hashing methodology to accept any similarity measure by using arbitrary kernel transforms allows for efficient 
 
 The following definitions let us formally define kernel transforms on time series:
-h
+
 \begin{definition}\label{defn:hilbert_space}
     \textbf{Hilbert space}:
-    A vector space $X$ over a field $F$ with an inner product $\innerproduct{\cdot}{\cdot}: X \times X \rightarrow F$ that also defines a complete\footnote{A space $X$ is complete if every Cauchy sequence ($\{x_n\}_{n \in \mathbb{N}}, x_n \in X$) converges in $X$.} metric space is called a Hilbert space.
+    A vector space $H$ over a field $F$ with an inner product $\innerproduct{\cdot}{\cdot}_H: H \times H \rightarrow F$ that also defines a complete\footnote{A space $X$ is complete if every Cauchy sequence  converges in $X$. A Cauchy sequence is a sequence $\{x_n\}_{n \in \mathbb{N}}, x_n \in X$ with $\lim\limits_{(m,n)\rightarrow\infty} |x_m - x_n| = 0$.} metric space is called a Hilbert space.
 \end{definition}
+
+The key property of Hilbert spaces we wish to leverage is the norm induced by the inner product $\innerproduct{\cdot}{\cdot}_H$.
+This inner product define the higher order distance measure we wish to use on the raw observation space.
 
 \begin{definition}\label{defn:kernel_trick}
     \textbf{Kernel transform}:
@@ -258,71 +260,89 @@ Thus, we can consider arbitrary higher-order distance measures as any positive-s
 \begin{definition}\label{defn:rkhs}
     \textbf{Reproducing kernel Hilbert space (RKHS)}:
     Let $H$ be a Hilbert space of real-valued functions on an arbitrary set $X$.
-    $H$ is a reproducing kernel Hilbert space if there exists a \textbf{reproducing kernel} for all $x \in X$, $\kappa_x$, where $f(x) = \innerproduct{f}{\kappa_x}_H~\forall~f \in H$.
+    $H$ is a reproducing kernel Hilbert space if there exists a \textbf{reproducing kernel}, $\kappa_x$ $\forall x \in X$, where $f(x) = \innerproduct{f}{\kappa_x}_H~\forall~f \in H$.
 \end{definition}
 
 Note that $\kappa(x,y) = \innerproduct{\kappa_x}{\kappa_y}_H$, and thus the kernel transform in Definition~\ref{defn:kernel_trick} defines a RKHS.
 We have thus demonstrated that we can consider arbitrary higher-order similarity measures using kernel functions on the space of observed samples.
 
-\section{Hashing model}
-\label{sec:hashing}
+\begin{definition}
+    \textbf{Similarity measure}:
+    A kernel function $\kappa(\cdot, \cdot)$ is a similarity measure on $X$ if $\kappa(x,x) = 1$ for any $x\in X$ and $\kappa(x,y)$ decreases as $d(x,y)$ increases for some distance measure $d$.
+\end{definition}
 
-Consider a set of $n$ samples $D = \{x_1,\ldots,x_n\} \subset \mathbb{R}^d$ with feature map:
+We are only interested in kernel functions which are similarity measures, as arbitrary kernel transforms without this structure are not useful for the purposes of constructing higher-order distance measures.
 
-\begin{align*}
-    \Phi \colon \mathbb{R}^d &\to \mathcal{H} \numberthis
-\end{align*}
+\section{Kernelized Hashing Model for Time Series}
+\label{sec:kernel_hashing}
 
-where $\mathcal{H}$ is a RKHS\@.
-A kernelized hashing scheme for a similarity measure requires that each hash function $h_r$ satisfy:
+We now propose a specific hashing model for time series with the goal of anomaly detection in mind.
 
-\begin{align*}
-    \Pr[h_r(x_i) = h_r(x_j)] = \kappa_r(x_i, x_j) \numberthis
-    \label{eqn:hash_collision}
-\end{align*}
+Consider a set of $n$ samples $D = \{x_1,\ldots,x_n\} \subset \mathbb{R}^d$ with similarity measure $\kappa \colon D \times D \rightarrow \mathbb{R}$ defined by $\kappa(x,y) = \innerproduct{\phi(x)}{\phi(y)}_H$, with $H$ being a RKHS.
+We now consider the effects of a positive-semidefinite similarity measure $\kappa(\cdot, \cdot)$ as well as its corresponding distance measure $\tilde{\kappa}(x,y) = \|\phi(x) - \phi(y)\|_H$, the norm induced by the RKHS.
+Note that from Definition~\ref{defn:kernel_trick}, we do not need to explicitly define the mapping $\phi(\cdot)$ to an RKHS.
 
-where $\kappa(\cdot,\cdot)$ is a kernel function defined by:
 
-\begin{align*}
-    \kappa(x_i,x_j) = \innerproduct{\Phi(x_i)}{\Phi(x_j)} \numberthis
-\end{align*}
+\begin{definition}\label{defn:kernel_lsh}
+    \textbf{Kernelized LSH}:
+    %Let $\kappa_r(\cdot, \cdot) = \kappa()$ 
+    $\mathcal{H}_R = \{ \mathcal{H}_r \}_{r \in R}$ is a $(R, p, q)$-sensitive ranked, kernelized LSH family if, for any $x,y \in D$:
+    \begin{enumerate}[(i)]
+        \item If $\tilde{\kappa}(x,y) \le r, \Pr[h_r(x) = h_r(y)] > p$
+        \item If $\tilde{\kappa}(x,y) \ge r, \Pr[h_r(x) = h_r(y)] < q$
+        \item Property $\mathscr{A}$ holds for any two LSH families $\mathcal{H}_{r_1}, \mathcal{H}_{r_2} \in \mathcal{H}_R$
+    \end{enumerate}
+    Denote such a family a \textbf{RKLSH} family.
+\end{definition}
 
-We assume $\kappa_r$ is normalized with respect to distance bias $r$ such that $\kappa_r(\cdot,\cdot) \in [0,1]$, and $\kappa_r$ follows properties (\ref{itm:first}), (\ref{itm:second}), and (\ref{itm:third}) of Section~\ref{sec:intro}.
-
-Note that equation~\ref{eqn:hash_collision} confers similar ``bounds'' to the differential privacy condition~\cite{dwork2006}:
-
-\begin{align*}
-    \Pr[f(x) = o] \le e^{\epsilon} \Pr[f(y) = o] \numberthis
-    \label{eqn:differential_privacy}
-\end{align*}
-
-Intuitively, this bounds the probability ratio of an observed output $o$ being the result of inputs $x$ or $y$ to some function $f$.
-While the hashing measure in equation~\ref{eqn:hash_collision} does not give a hard bound, it instead allows the evaluation of privacy leakage and the clear separation of time series into ranked buckets by varying distance parameter $r$.
+We now consider how to apply a RKLSH family to time series for anomaly detection and construct such a family in Section~\ref{sec:proposed_scheme}.
 
 \subsection{Ranked Hashing by Iteration}
 \label{subsec:ranked_lsh}
 
-Consider a hash family $\mathcal{H}$ which approximates a measure for time series distance and is parametrizable by distance threshold $r$ for collision probability (see properties (\ref{itm:first}), (\ref{itm:second}), and (\ref{itm:third}) in Section~\ref{sec:intro}).
-%The key property of $h_r \in \mathcal{H}_r$ is that $\Pr[h_r(x) = h_r(y)]$ approximates $\kappa(x,y) < r$, where $\kappa(\cdot,\cdot)$ is the kernel function.
+Let $\mathcal{H}_R$ be a RKLSH family which approximates a measure on time series distance with $R$ being a set of stratifying distance thresholds, and let $S$ be the space of all possible time series.
 
-Let $\mathcal{R} = \{r_1, r_2, \ldots\}$ be a set of stratifying distance thresholds, and let $S$ be the space of all possible time series.
-Define an equivalence relation $\sim_r$ on $S$ where $x \sim_r y \Leftrightarrow \kappa(x,y) < r$.
-Then, $\pi_r$ is a projection mapping of $\sim_r$ such that $\pi_r \colon X \rightarrow X/\sim_r$, where $\pi_r(x) = \pi_r(y)$ iff $\kappa(x,y) < r$.
+% You can define a relation wrt a single point, for each point and for each threshold
+% Triangulate based on which two fall into same class at each threshold
+% Intuitively, probabilistic neighborhoods defined for < r_1 threshold
+% < r_2 should confirm all of the < r_1 with high probability, forming a tier 2 neighborhood
+% Two neighborhoods are ``ranked'' based on the lowest tier on which they reside in the same neighborhood
+
+\begin{definition}\label{defn:neighborhood_rank}
+    Let $X$ be an input space and $\mathcal{H}_R$ an RKLSH, with $R = \{r_1, r_2, \ldots\}$.
+    Two data samples $x,y \in X$ have \textbf{rank} $n$ if $n = \inf\limits_n\{ r_n \in R | h_{r_n}(x) = h_{r_n}(y) \}$.
+\end{definition}
+
+By applying this tiered nearest neighbor calculation, we are able to \textit{rank} the similarity of two elements by examining the threshold at which their hashes collide.
+
+\iffalse
+% This doesn't work
+% TODO: fix
+Define an equivalence relation $\sim_r$ on $S$ where $x \sim_r y \Leftrightarrow \tilde{\kappa}(x,y) < r$.
+Then, $\pi_r$ is a projection mapping of $\sim_r$ such that $\pi_r \colon X \rightarrow X/\sim_r$, where $\pi_r(x) = \pi_r(y)$ iff $\tilde{\kappa}(x,y) < r$.
 
 Iteratively applying LSH with hash functions $h_r \in \mathcal{H}_r~\forall r\in \mathcal{R}$ will approximate the projections $\pi_r$ for each threshold.
 Let $L_r = \{[h_r(x)], \ldots \}$ be the set of LSH buckets (the set unique hash mappings of $h_r$).
 If $h_r \approx \pi_r$, then $L_r$ will closely approximate the quotient $X/\sim_r$ and thus $\{L_r | r \in \mathcal{R} \} \approx \{X/\sim_r\}$.
+\fi
 
-\subsection{Anomaly Detection}
+\subsection{Anomaly Detection on time series}
 \label{subsec:anomaly_detection}
 
-What this theory describes is that similar time series can be grouped together and ranked by their closeness by kernel function $\kappa$~\cite{Hachiya13-NSH}.
-In the context of anomaly detection, we can apply this scheme to a set of \textit{normal} traces (time series of utilization, label encoded syscalls, etc.) to determine what thresholds and buckets constitute normal execution with a finer granularity.
+What this theory describes is that similar time series may be grouped together and ranked by their closeness via a kernel distance measure $\tilde{\kappa}$~\cite{Hachiya13-NSH}.
+In the context of anomaly detection, we can apply this scheme to a set of \textit{normal} traces (time series of utilization, label encoded syscalls, etc.) to determine what thresholds and clusters constitute normal execution with a finer granularity.
 Instead of a binary label of \textit{normal} vs \textit{anomalous}, we can instead stratify applications by types of execution.
 We speculate that this makes our detection algorithm more robust to adversarial interference.
 
-Given the initial LSH bucketing of normal traces, we can continuously apply the hashing scheme to testing traces over a rolling window to categorize their behavior.
-Traces which do not match enough previously ``normal'' buckets over the set of thresholds may be considered to represent anomalous activity.
+Given the initial LSH clustering of normal traces, we can continuously apply the hashing scheme to testing traces over a rolling window to categorize their behavior.
+Traces which do not match enough previously ``normal'' clusters over the set of thresholds may be considered to represent anomalous activity.
+
+The streams of time series our LSH algorithm considers have indeterminate length, so we consider fixed fixed observation periods and hash time series segments.
+However, performing this real-time anomaly detection still leaves the issue of a malicious program changing behavior to match different benign programs during different observation periods.
+Unless such behavioral changes were present in the original training set, this behavior should be considered anomalous.
+
+To combat behavioral changes in malicious programs, we randomize the observation periods for each distance threshold $r_i$ in the LSH algorithm.
+This guarantees that such behavior changes will be observed during the hashing process for some distance thresholds.
 
 
 \subsection{Unsupervised, Intelligent Adversary}
@@ -330,7 +350,8 @@ Traces which do not match enough previously ``normal'' buckets over the set of t
 A similar approach to Section~\ref{subsec:anomaly_detection} can be applied without a predetermined training set for time series classification through clustering.
 Adjusting the set of threshold values confers the notion of closeness, which may be used to determine which sets of output traces resulted from the same input to a program, for example.
 
-\section{Proposed Measures}
+\section{Proposed Scheme}
+\label{sec:proposed_scheme}
 
 Consider the Minkowski distance:
 
