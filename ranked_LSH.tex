@@ -1,24 +1,46 @@
 \documentclass[a4paper]{article}
 \usepackage[margin=1.5in]{geometry}
 \usepackage{parskip,amsmath,mathtools,amssymb,amsfonts,mathrsfs}
+\usepackage{amsthm}
 \usepackage{enumerate}
 \usepackage{url,titling}
-%\usepackage{ulem}
 \usepackage{fancyhdr,hyperref}
 \usepackage{booktabs,color,tabularx}
 \newcommand\numberthis{\addtocounter{equation}{1}\tag{\theequation}}
 \newcommand{\norm}[1]{\left\lVert#1\right\rVert}
 \newcommand{\innerproduct}[2]{\langle{}#1,#2\rangle{}}
+\newtheoremstyle{def}
+{8pt}
+{5pt}
+{}
+{}
+{\bfseries}
+{:}
+{.5em}
+{}
+
+\newtheoremstyle{thm}
+{8pt}
+{5pt}
+{\itshape}
+{}
+{\bfseries}
+{:}
+{.5em}
+{}
+
+\theoremstyle{def}
 \newtheorem{definition}{Definition}
 \newtheorem{assumption}[definition]{Assumption}
-\newtheorem{proposition}[definition]{Proposition}
-\newtheorem{lemma}[definition]{Lemma}
-\newtheorem{claim}[definition]{Claim}
-\newtheorem{theorem}[definition]{Theorem}
-\newtheorem{corollary}[definition]{Corollary}
+\theoremstyle{thm}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}[proposition]
+\newtheorem{claim}[proposition]{Claim}
+\newtheorem{theorem}[proposition]{Theorem}
+\newtheorem{corollary}{Corollary}[proposition]
+%\newenvironment{proof}[1][]{\textbf{Proof:} }{\hfill$\square$}
 
-\setlength{\textfloatsep}{6pt}
-
+%\setlength{\textfloatsep}{6pt}
 
 % Math symbols
 \DeclareMathAlphabet{\mathcal}{OMS}{cmsy}{m}{n}
@@ -28,6 +50,8 @@
 \newcommand{\p}[0]{\mathbf{p}}
 \newcommand{\q}[0]{\mathbf{q}}
 \newcommand{\R}[0]{\mathbb{R}}
+\newcommand{\N}[0]{\mathbb{N}}
+\newcommand{\LSH}[0]{\mathcal{H}}
 \newcommand{\re}[1]{\frac{1}{#1}}
 \newcommand{\set}[1]{\lbrace\ 0,1 \rbrace^{#1}}
 \newcommand{\X}[0]{\mathcal{X}}
@@ -69,6 +93,15 @@ We show that this can determine the effectiveness of leakage prevention schemes 
 
 \section{Background and Definitions}
 \label{sec:definitions}
+\label{sec:background}
+
+Previous work in time series anomaly detection has largely focused on Euclidean distance and Dynamic Time Warping (DTW) distance~\cite{many,papers,by,those,guys}.
+However, we find that there are drawbacks of limiting evaluation to these two measures only.
+DTW is not a proper metric as it is not sub-additive; this is a result of DTW treating one time series as non-linear time-stretched of the other.
+In the context of anomaly detection, this limits the ability to mark a small, unexpected change in behavior when compared with other distance measures.
+Additionally, both of these measures operate under the assumption that observed time series which are similar will be of the same scale.
+Two time series which exhibit similar ``behavior'' but take values of a slightly different scale will not be marked as being similar by either measure.
+Changes in background system activity could therefore affect the ability of these two measure to detect true anomalous activity.
 
 % Definition of leakage
 % Hashing
@@ -90,8 +123,8 @@ For example, the \textit{trace} of system calls on a system over time is an $n$-
 
 Our primary observation with regards to time series leakage is that information may only be learned from time series observations if the underlying distributions are distinguishable.
 
-\begin{definition}\label{defn:dist_leakage}
-    \textbf{Distribution-based leakage:} Consider two distinct program behaviors $x$ and $x'$ and resulting time series for each behavior drawn from $D_x$ and $D_{x'}$ respectively.
+\begin{definition}[Distribution-based leakage]\label{defn:dist_leakage}
+    Consider two distinct program behaviors $x$ and $x'$ and resulting time series for each behavior drawn from $D_x$ and $D_{x'}$ respectively.
     Let $t(x)$ and $t(x')$ be two time series resulting from behaviors $x, x'$, drawn from $D_x, D_{x'}$ respectively.
     Observing $t(x)$ and $t(x')$ can only leak information about $x$ and $x'$ if $D_x$, $D_{x'}$ are statistically distinguishable.
 \end{definition}
@@ -99,8 +132,8 @@ Our primary observation with regards to time series leakage is that information 
 While Definition~\ref{defn:dist_leakage} is useful when one can carefully observe many samples from different distributions to assess the distinguishability of the underlying distributions, it is difficult to use in practice.
 Instead, we propose a slightly different definition of leakage:
 
-\begin{definition}\label{defn:leakage}
-	\textbf{Time series leakage:} Consider two distinct program behaviors $x$ and $x'$ with output distributions $D_x$ and $D_{x'}$, and let $d(\cdot,\cdot)$ be a distance function on space of output time series.
+\begin{definition}[Time series leakage]\label{defn:leakage}
+    Consider two distinct program behaviors $x$ and $x'$ with output distributions $D_x$ and $D_{x'}$, and let $d(\cdot,\cdot)$ be a distance function on the output time series.
     Let $T_x = \{t_k\}$ be a sequence of time series drawn from $D_x$.
     Define $r$ as the minimum distance such that $d(t_i, t_j) \le r~\forall~t_i,t_j \in T_x$
 
@@ -118,9 +151,8 @@ Exploiting the probabilistic nature and the computational efficiency of hashing 
 Consider the space of time series $S$ and a distance function $d$ on $S$.
 A LSH family is defined as such:
 
-\begin{definition}\label{defn:hash_family}
-    \textbf{Hash family:}
-    A hash family $\mathcal{H} = \{ h : S \rightarrow U \}$ is called $(r_1, r_2, p_1, p_2)$-sensitive w.r.t. $d(\cdot,\cdot)$ if for any $x,y \in S, h \in \mathcal{H}$
+\begin{definition}[Hash family]\label{defn:hash_family}
+    A hash family ${\LSH} = \{ h : S \rightarrow U \}$ is called $(r_1, r_2, p_1, p_2)$-sensitive w.r.t. $d(\cdot,\cdot)$ if for any $x,y \in S, h \in {\LSH}$
     \begin{enumerate}[(i)]
         \item\label{itm:hash_def1} If $d(x,y) \le r_1$, then $\Pr[h(x) = h(y)] \ge p_1$
         \item\label{itm:hash_def2} If $d(x,y) \ge r_2$, then $\Pr[h(x) = h(y)] \le p_2$
@@ -130,79 +162,39 @@ A LSH family is defined as such:
 Such a family is only interesting if $p_1 > p_2$.
 To increase the effectiveness of an LSH technique, the gap between $p_1$ and $p_2$ may be \textit{amplified}:
 
-\begin{definition}\label{defn:lsh_amplification}
-    \textbf{LSH Amplification:}
-    Consider a $(r_1, r_2, p_1, p_2)$-sensitive hash family $\mathcal{H}$ w.r.t $d(\cdot,\cdot)$. The LSH hash family can be amplified in the following ways:
+\begin{definition}[LSH amplification]\label{defn:lsh_amplification}
+    Consider a $(r_1, r_2, p_1, p_2)$-sensitive hash family ${\LSH}$ w.r.t $d(\cdot,\cdot)$. The LSH hash family can be amplified in the following ways:
     \begin{enumerate}[(i)]
-        \item \textbf{AND construction:} Define $\mathcal{H}' = \{h' : S \rightarrow U^r\}$ such that $h' = [h_1, \ldots, h_r] \subset \mathcal{H}$.
+        \item \textbf{AND construction:} Define ${\LSH}' = \{h' : S \rightarrow U^r\}$ such that $h' = [h_1, \ldots, h_r] \subset {\LSH}$.
             $h'(x) = h'(y)$ iff $h_i(x) = h_i(y) ~\forall~h_i \in h'$
             $\mathcal{H'}$ is a $(r_1, r_2, p_1^r, p_2^r)$-sensitive LSH family
-        \item \textbf{OR construction:} Define $\mathcal{H}' = \{h' : S \rightarrow U^b\}$ such that $h' = [h_1, \ldots, h_b] \subset \mathcal{H}$.
+        \item \textbf{OR construction:} Define ${\LSH}' = \{h' : S \rightarrow U^b\}$ such that $h' = [h_1, \ldots, h_b] \subset {\LSH}$.
             $h'(x) = h'(y)$ iff $h_i(x) = h_i(y)$ for any $h_i \in h'$
             $\mathcal{H'}$ is a $(r_1, r_2, 1-{(1-p_1)}^b, 1-{(1-p_2)}^b)$-sensitive LSH family
         \item \textbf{AND-OR composition:} The composition of \textnormal{and} with \textnormal{or} constructions defines a $(r_1, r_2, 1-{(1-p_1^r)}^b, 1-{(1-p_2^r)}^b)$-sensitive LSH family
     \end{enumerate}
 \end{definition}
 
-We consider hash families $\mathcal{H} = \{h : S \rightarrow \mathbb{R}_{+}^n\}$ such that $h \in \mathcal{H}$ approximates $d(\cdot,\cdot)$ on time series in $S$.
+We consider hash families ${\LSH} = \{h : S \rightarrow \R_{+}^n\}$ such that $h \in {\LSH}$ approximates $d(\cdot,\cdot)$ on time series in $S$.
 Intuitively, time series which are ``closer'' to each other (as defined by $d$) will be harder to distinguish by any arbitrary classifier and thus present fewer possibilities for information leakage.
-We expand on this intuition by considering a hashing family $\mathcal{H}$ and hashing function $h \in \mathcal{H}$ which has the following property $\mathscr{A}$:
 
-% Can we make any claims about the reverse:
-% Collision -> probability of collision with higher distance?
-% This allows us to triangulate: you gain information about a "higher" hash family from a "lower" one
-
-\begin{definition}\label{defn:property_alpha}
-    \textbf{Property $\mathscr{A}$}:
-    Two hash families $\mathcal{H}_{r_1}, \mathcal{H}_{r_2}$ ($r_1 \le r_2$ \textnormal{WLOG}) have property $\mathscr{A}$ if they are $(r_1, r_1, p_1, q_1)$ and $(r_2, r_2, p_2, q_2)$-sensitive respectively and the following holds:
-    If $h_{r_1}(x) = h_{r_1}(y)$, then $\Pr[h_{r_2}(x) = h_{r_2}(y)] \le \max(1 - q_1, 1 - q_2)$
-\end{definition}
-
-Note that the function $d(\cdot,\cdot)$ used in constructing an LSH family need not be a proper metric, but property~$\mathscr{A}$ requires that $d(\cdot,\cdot)$ be sub-additive.
-
-Definition~\ref{defn:property_alpha} allows for a stratified LSH scheme using a set of LSH families index by a distance $r$ which allows us to confer a notion of closeness between buckets of a lower LSH strata.
-
-\begin{definition}\label{defn:ranked_lsh}
-    \textbf{Ranked LSH families}:
-    A set of hash families ${\{\mathcal{H}_r\}}_{r\in R}$ is a ranked LSH family if any two $H_{r_1}, H_{r_2}$ have property $\mathscr{A}~\forall~r_1, r_2 \in R$.
-    Denote such a set of families as $(R,p_1, p_2)$-sensitive LSH families $\mathcal{H}_R$.
-    %, where $p = \inf\{ p_i | H_{r_1}$ is $(r_1,r_1,p_i,p_i)$-sensitive $\}$.
-\end{definition}
-
-%In summary, we are now considering a \textit{ranked LSH family} with the following properties:
-\begin{proposition}\label{prop:ranked_lsh}
-    There exists $(R, p_1, p_2)$-sensitive ranked LSH families $\mathcal{H}_R = {\{\mathcal{H}_r\}}_{r\in R}$ such that the following hold:
-    \begin{enumerate}[(i)]
-        \item\label{itm:first}
-            $h \in \mathcal{H}_r \in \mathcal{H}_R$ collides with high probability if $y \in B_r(x)$: If $d(x,y) < r, \Pr[h(x) = h(y)] \ge p_1$.
-        \item\label{itm:second}
-            $h \in \mathcal{H}_r$ has few false collisions: If $d(x,y) > r$, $\Pr[h(x) = h(y)] < p_2$.
-        \item\label{itm:rank_property}
-            Property $\mathscr{A}$ holds for any two families $\mathcal{H}_{r_1}, \mathcal{H}_{r_2} \in \mathcal{H}_R$.
-    \end{enumerate}
-\end{proposition}
-
-Proposition~\ref{prop:ranked_lsh} corroborates the notion of closeness to collision probabilities, which allows for the grouping of similar time series.
-Due to Property~$\mathscr{A}$, we may apply iterative hashing scheme to \textit{rank} the probabilities of closeness based on the varied parameter $r$.
-We discuss this in greater depth in Section~\ref{subsec:ranked_lsh}
-
+% Maybe move this to a background section.
 \subsection{Distance Measure}
 Denote the space of a time series as $S$, and define a function $d$:
 
 \begin{align*}
-    d \colon S^2 &\to \mathbb{R}_{+}\\
+    d \colon S^2 &\to \R_{+}\\
     (x,y) &\mapsto r \numberthis
 \end{align*}
 
-Where $d$ maps two time series to a non-negative real number that represents some notion of distance between them.
-Additionally, require $d$ to be sub-additive:
+where $d$ maps two time series to a non-negative real number that represents some notion of distance between them.
+Additionally, we may require $d$ to be sub-additive:
 
 \begin{align*}
     d(x,y) \le d(x,z) + d(z,y) \numberthis
 \end{align*}
 
 % What do we need from this metric?
-
 The function $d(\cdot,\cdot)$ defines leakage in our threat model.
 To give intuition behind this, we consider an arbitrary classification attack on a set of time series.
 Applying Definitions~\ref{defn:dist_leakage} and~\ref{defn:leakage}, there is potential for leakage by observing the resulting time series if, for some function $d$, there exists separation by $d(\cdot, \cdot)$ between time series of differing classes.
@@ -216,14 +208,6 @@ Applying Definitions~\ref{defn:dist_leakage} and~\ref{defn:leakage}, there is po
 % Then wat
 
 % Discussion of time series comparison for leakage, in general
-
-Previous work in time series anomaly detection has largely focused on Euclidean distance and Dynamic Time Warping (DTW) distance.
-However, we note that there are drawbacks of limiting evaluation to these two measures only.
-DTW is not a proper metric as it is not sub-additive; this is a result of DTW treating one time series as non-linear time-stretched of the other.
-In the context of anomaly detection, this limits the ability to mark a small, unexpected change in behavior when compared with other distance measures.
-Additionally, both of these measures operate under the assumption that observed time series which are similar will be of the same scale.
-Two time series which exhibit similar ``behavior'' but take values of a slightly different scale will not be marked as being similar by either measure.
-Changes in background system activity could therefore affect the ability of these two measure to detect true anomalous activity.
 
 \subsection{Kernel Transforms}
 \label{subsec:kernel_transforms}
@@ -239,16 +223,14 @@ A kernel function $\kappa(\cdot,\cdot)$ thus defines a new similarity measure on
 
 The following definitions let us formally define kernel transforms on time series:
 
-\begin{definition}\label{defn:hilbert_space}
-    \textbf{Hilbert space}:
-    A vector space $H$ over a field $F$ with an inner product $\innerproduct{\cdot}{\cdot}_H: H \times H \rightarrow F$ that also defines a complete\footnote{A space $X$ is complete if every Cauchy sequence  converges in $X$. A Cauchy sequence is a sequence $\{x_n\}_{n \in \mathbb{N}}, x_n \in X$ with $\lim\limits_{(m,n)\rightarrow\infty} |x_m - x_n| = 0$.} metric space is called a Hilbert space.
+\begin{definition}[Hilbert space]\label{defn:hilbert_space}
+    A vector space $H$ over a field $F$ with an inner product $\innerproduct{\cdot}{\cdot}_H: H \times H \rightarrow F$ that also defines a complete\footnote{A space $X$ is complete if every Cauchy sequence  converges in $X$. A Cauchy sequence is a sequence $\{x_n\}_{n \in \N}, x_n \in X$ with $\lim\limits_{(m,n)\rightarrow\infty} |x_m - x_n| = 0$.} metric space is called a Hilbert space.
 \end{definition}
 
 The key property of Hilbert spaces we wish to leverage is the norm induced by the inner product $\innerproduct{\cdot}{\cdot}_H$.
 This inner product define the higher order distance measure we wish to use on the raw observation space.
 
-\begin{definition}\label{defn:kernel_trick}
-    \textbf{Kernel transform}:
+\begin{definition}[Kernel transform]\label{defn:kernel_trick}
     Let $X$ be an arbitrary space and $H$ be a Hilbert space with inner product $\innerproduct{\cdot}{\cdot}_H$.
     $\kappa(\cdot, \cdot): X \times X \rightarrow H$ is a kernel transform if $\kappa(x,y) = \innerproduct{\phi(x)}{\phi(y)}_H$ for some $\phi: X \rightarrow H$.
 \end{definition}
@@ -257,40 +239,97 @@ Note that in Definition~\ref{defn:kernel_trick}, the mapping function $\phi$ nee
 In fact, $\kappa$ being a positive-semidefinite function (or matrix over discrete spaces) implies the existence of a satisfactory function $\phi$.
 Thus, we can consider arbitrary higher-order distance measures as any positive-semidefinite mapping $\kappa: X \times X \rightarrow H$ guarantees a similarity measure in $H$.
 
-\begin{definition}\label{defn:rkhs}
-    \textbf{Reproducing kernel Hilbert space (RKHS)}:
+\begin{definition}[Reproducing kernel Hilbert space (RKHS)]\label{defn:rkhs}
     Let $H$ be a Hilbert space of real-valued functions on an arbitrary set $X$.
     $H$ is a reproducing kernel Hilbert space if there exists a \textbf{reproducing kernel}, $\kappa_x$ $\forall x \in X$, where $f(x) = \innerproduct{f}{\kappa_x}_H~\forall~f \in H$.
 \end{definition}
 
 Note that $\kappa(x,y) = \innerproduct{\kappa_x}{\kappa_y}_H$, and thus the kernel transform in Definition~\ref{defn:kernel_trick} defines a RKHS.
-We have thus demonstrated that we can consider arbitrary higher-order similarity measures using kernel functions on the space of observed samples.
+This demonstrates that we can consider arbitrary higher-order similarity measures using kernel functions on the space of observed samples.
+Furthermore, we can construct proper distance measures from the norm induced by the inner product on a RKHS.
 
-\begin{definition}
-    \textbf{Similarity measure}:
-    A kernel function $\kappa(\cdot, \cdot)$ is a similarity measure on $X$ if $\kappa(x,x) = 1$ for any $x\in X$ and $\kappa(x,y)$ decreases as $d(x,y)$ increases for some distance measure $d$.
+\begin{definition}[Hilbert norm-induced distance]
+    Given an input set $X$, a reproducing kernel $\kappa(\cdot, \cdot) \colon X \times X \rightarrow H$, where $H$ is a RKHS, define a distance measure on $X$ by:
+    \begin{align*}
+        d(x,y)^2 &= \norm{\phi(x) - \phi(y)}_H^2 = \innerproduct{\phi(x) - \phi(y)}{\phi(x) - \phi(y)}_H \\
+        &= \innerproduct{z}{z}_H = \kappa(\phi^{-1}(z), \phi^{-1}(z)) \numberthis
+    \end{align*}
 \end{definition}
 
-We are only interested in kernel functions which are similarity measures, as arbitrary kernel transforms without this structure are not useful for the purposes of constructing higher-order distance measures.
+Note that we have still not explicitly defined the feature map $\phi(\cdot)$.
+Instead, we contend that such a function exists that allows our transform to take place, which we prove in Section~\ref{subsec:proposed_kernel}.
 
 \section{Kernelized Hashing Model for Time Series}
 \label{sec:kernel_hashing}
 
-We now propose a specific hashing model for time series with the goal of anomaly detection in mind.
+We now propose a specific hashing model for time series with the goal of anomaly detection.
 
-Consider a set of $n$ samples $D = \{x_1,\ldots,x_n\} \subset \mathbb{R}^d$ with similarity measure $\kappa \colon D \times D \rightarrow \mathbb{R}$ defined by $\kappa(x,y) = \innerproduct{\phi(x)}{\phi(y)}_H$, with $H$ being a RKHS.
+\begin{definition}[Property $\mathscr{A}$]\label{defn:property_alpha}
+    Let $\LSH$ be a $(2r, s, p, q)$-sensitive LSH family on $X$ with distance measure $d(\cdot, \cdot)$.
+    $\LSH$ has property~$\mathscr{A}$ if the following holds:
+    Fix $x \in X$ and construct $S = \{s \in X \mid d(x,s) \le r\}$.
+    Then, $\Pr[h(x_i) = h(x_j)] \ge p~\forall x_i, x_j \in S, h \in \LSH$ 
+\end{definition}
+
+Property~$\mathscr{A}$ confers the notion that elements which lie within a ball of fixed radius should have high probability of hashing to the same value.
+Furthermore, such families may be \textit{nested} with increasing values of $n$ to form neighborhoods with different levels of similarity.
+We now define what we need from a distance measure $d$ to obtain this nesting property.
+
+\begin{claim}\label{prop:property_alpha}
+    An LSH family $\LSH$ with distance measure $d(\cdot, \cdot)$ on a set $X$ has Property~$\mathscr{A}$ if $d(\cdot, \cdot)$ is a sub-additive distance measure.
+\end{claim}
+
+\begin{proof}
+    Let $\LSH$ be an LSH family on $X$ which is $(2r, s, p, q)$-sensitive and suppose $d: X \times X \rightarrow \R_+$ is sub-additive.
+
+    Fix $x \in X$ and construct $S = \{s \in X \mid d(x,s) \le r\}$.
+    Since $d$ is a sub-additive distance measure, $d(x_i, x_j) \le d(x_i,x) + d(x,x_j) = d(x,x_i) + d(x,x_j) \le 2r~\forall x_i,x_j \in S$.
+    Thus by construction of $\LSH$, $\Pr[h(x_i) = h(x_j)] \ge p~\forall x_i, x_j \in S, h \in \LSH$, and thus $\LSH$ has property~$\mathscr{A}$.
+\end{proof}
+
+Property $\mathscr{A}$ additionally allows for a stratified LSH scheme using a set of LSH families index by a distance $r$ which allows us to confer a notion of closeness between buckets of a lower LSH strata.
+
+\begin{definition}[Ranked LSH families]\label{defn:ranked_lsh}
+    A set of hash families ${\{{\LSH}_r\}}_{r\in R}$ is a ranked LSH family $H_r$ has property $\mathscr{A}~\forall r \in R$.
+    Denote such a set of families as $(R,p_1, p_2)$-sensitive LSH families ${\LSH}_R$.
+    %, where $p = \inf\{ p_i | H_{r_1}$ is $(r_1,r_1,p_i,p_i)$-sensitive $\}$.
+\end{definition}
+
+% TODO: is this proposition necessary?
+%In summary, we are now considering a \textit{ranked LSH family} with the following properties:
+%\begin{proposition}\label{prop:ranked_lsh}
+%    There exists $(R, p_1, p_2)$-sensitive ranked LSH families ${\LSH}_R = {\{{\LSH}_r\}}_{r\in R}$ such that the following hold:
+%    \begin{enumerate}[(i)]
+%        \item\label{itm:first}
+%            $h \in {\LSH}_r \in {\LSH}_R$ collides with high probability if $y \in B_r(x)$: If $d(x,y) < r, \Pr[h(x) = h(y)] \ge p_1$.
+%        \item\label{itm:second}
+%            $h \in {\LSH}_r$ has few false collisions: If $d(x,y) > r$, $\Pr[h(x) = h(y)] < p_2$.
+%        \item\label{itm:rank_property}
+%            Property $\mathscr{A}$ holds for any two families ${\LSH}_{r_1}, {\LSH}_{r_2} \in {\LSH}_R$.
+%    \end{enumerate}
+%\end{proposition}
+
+%\begin{proof}
+%\end{proof}
+
+This corroborates the notion of closeness to collision probabilities, which allows for the grouping of similar time series.
+Due to Property~$\mathscr{A}$, we may apply iterative hashing scheme to \textit{rank} the probabilities of closeness based on the varied parameter $r$.
+We discuss this in greater depth in Section~\ref{subsec:ranked_lsh}
+
+\subsection{Kernel Model}
+\label{subsec:kernel_model}
+
+Consider a set of $n$ samples $D = \{x_1,\ldots,x_n\} \subset \R^d$ with similarity measure $\kappa \colon D \times D \rightarrow \R$ defined by $\kappa(x,y) = \innerproduct{\phi(x)}{\phi(y)}_H$, with $H$ being a RKHS.
 We now consider the effects of a positive-semidefinite similarity measure $\kappa(\cdot, \cdot)$ as well as its corresponding distance measure $\tilde{\kappa}(x,y) = \|\phi(x) - \phi(y)\|_H$, the norm induced by the RKHS.
 Note that from Definition~\ref{defn:kernel_trick}, we do not need to explicitly define the mapping $\phi(\cdot)$ to an RKHS.
 
-
-\begin{definition}\label{defn:kernel_lsh}
-    \textbf{Kernelized LSH}:
+\begin{definition}[Kernelized LSH]\label{defn:kernel_lsh}
     %Let $\kappa_r(\cdot, \cdot) = \kappa()$ 
-    $\mathcal{H}_R = \{ \mathcal{H}_r \}_{r \in R}$ is a $(R, p, q)$-sensitive ranked, kernelized LSH family if, for any $x,y \in D$:
+    ${\LSH}_R = \{ {\LSH}_r \}_{r \in R}$ is a $(R, p, q)$-sensitive ranked, kernelized LSH family if, for any $x,y \in D$:
     \begin{enumerate}[(i)]
         \item If $\tilde{\kappa}(x,y) \le r, \Pr[h_r(x) = h_r(y)] > p$
         \item If $\tilde{\kappa}(x,y) \ge r, \Pr[h_r(x) = h_r(y)] < q$
-        \item Property $\mathscr{A}$ holds for any two LSH families $\mathcal{H}_{r_1}, \mathcal{H}_{r_2} \in \mathcal{H}_R$
+        \item Property $\mathscr{A}$ holds for any LSH family ${\LSH}_{r_i} \in {\LSH}_R$
     \end{enumerate}
     Denote such a family a \textbf{RKLSH} family.
 \end{definition}
@@ -300,7 +339,7 @@ We now consider how to apply a RKLSH family to time series for anomaly detection
 \subsection{Ranked Hashing by Iteration}
 \label{subsec:ranked_lsh}
 
-Let $\mathcal{H}_R$ be a RKLSH family which approximates a measure on time series distance with $R$ being a set of stratifying distance thresholds, and let $S$ be the space of all possible time series.
+Let ${\LSH}_R$ be a RKLSH family which approximates a measure on time series distance with $R$ being a set of stratifying distance thresholds, and let $S$ be the space of all possible time series.
 
 % You can define a relation wrt a single point, for each point and for each threshold
 % Triangulate based on which two fall into same class at each threshold
@@ -308,23 +347,22 @@ Let $\mathcal{H}_R$ be a RKLSH family which approximates a measure on time serie
 % < r_2 should confirm all of the < r_1 with high probability, forming a tier 2 neighborhood
 % Two neighborhoods are ``ranked'' based on the lowest tier on which they reside in the same neighborhood
 
-\begin{definition}\label{defn:neighborhood_rank}
-    Let $X$ be an input space and $\mathcal{H}_R$ an RKLSH, with $R = \{r_1, r_2, \ldots\}$.
-    Two data samples $x,y \in X$ have \textbf{rank} $n$ if $n = \inf\limits_n\{ r_n \in R | h_{r_n}(x) = h_{r_n}(y) \}$.
+\begin{definition}[LSH neighborhood]\label{defn:neighborhood}
+    A \textbf{neighborhood} with respect to distance threshold $r_i \in R$ and LSH hash function $h \in {\LSH}_R$} is a set of points $S$ such that $\forall s_i, s_j \in S, h(s_i) = h(s_j)$.
 \end{definition}
 
-By applying this tiered nearest neighbor calculation, we are able to \textit{rank} the similarity of two elements by examining the threshold at which their hashes collide.
+The goal of hashing the set of input points is to efficiently compute sets of \textit{approximate nearest neighbors} (ANN) such that the behavior of each point can be classified.
+However, the construction of RKLSH we have previously defined provides extra structure which allows us to make even stronger similarity claims:
 
-\iffalse
-% This doesn't work
-% TODO: fix
-Define an equivalence relation $\sim_r$ on $S$ where $x \sim_r y \Leftrightarrow \tilde{\kappa}(x,y) < r$.
-Then, $\pi_r$ is a projection mapping of $\sim_r$ such that $\pi_r \colon X \rightarrow X/\sim_r$, where $\pi_r(x) = \pi_r(y)$ iff $\tilde{\kappa}(x,y) < r$.
+\begin{definition}[Neighborhood rank]\label{defn:neighborhood_rank}
+    Let $X$ be an input space and ${\LSH}_R$ an RKLSH, with $R = \{r_1, r_2, \ldots\}$.
+    Two data samples $x,y \in X$ have \textbf{rank} $n$ if $n = \inf\limits_i\{ r_i \in R \mid \forall r_j \ge r_i,~\exists h_{r_j} \in {\LSH}_{r_j}$ such that $h_{r_j}(x) = h_{r_j}(y) \}$.
+\end{definition}
 
-Iteratively applying LSH with hash functions $h_r \in \mathcal{H}_r~\forall r\in \mathcal{R}$ will approximate the projections $\pi_r$ for each threshold.
-Let $L_r = \{[h_r(x)], \ldots \}$ be the set of LSH buckets (the set unique hash mappings of $h_r$).
-If $h_r \approx \pi_r$, then $L_r$ will closely approximate the quotient $X/\sim_r$ and thus $\{L_r | r \in \mathcal{R} \} \approx \{X/\sim_r\}$.
-\fi
+We can thus apply the ranked hashing scheme to perform a stronger approximate nearest-neighbor calculation than with a single LSH family.
+The similarity of any two points within a neighborhood can be ranked to give an indication of the confidence a point truly falls within a given neighborhood and thus exhibits the given behavior.
+
+Thus, by applying this tiered ANN calculation, we are able to \textit{rank} the similarity of two elements by examining the threshold at which their hashes collide.
 
 \subsection{Anomaly Detection on time series}
 \label{subsec:anomaly_detection}
@@ -344,24 +382,33 @@ Unless such behavioral changes were present in the original training set, this b
 To combat behavioral changes in malicious programs, we randomize the observation periods for each distance threshold $r_i$ in the LSH algorithm.
 This guarantees that such behavior changes will be observed during the hashing process for some distance thresholds.
 
-
+\iffalse
 \subsection{Unsupervised, Intelligent Adversary}
 
 A similar approach to Section~\ref{subsec:anomaly_detection} can be applied without a predetermined training set for time series classification through clustering.
 Adjusting the set of threshold values confers the notion of closeness, which may be used to determine which sets of output traces resulted from the same input to a program, for example.
+\fi
 
 \section{Proposed Scheme}
 \label{sec:proposed_scheme}
 
+We now propose a specific distance measure and kernel transform to maximize the impact of our RKLSH algorithm for anomaly detection.
+
+\subsection{Dynamic Time Warping}
+
+% Empirical evaluation of DTW on traces
+
+\subsection{Minkowski-based Measures}
+
 Consider the Minkowski distance:
 
-\begin{align*}
+\begin{align}
     M(x,y) = {(\sum\limits_k |x_k - y_k|^p)}^{1/p}
-\end{align*}
+\end{align}
 
 For $p \ge 1$, $M(\cdot,\cdot)$ is a measure due to Minkowski's inequality~\cite[p. 190]{wheeden15-measure}.
 Additionally, for $p = 2$, this is the standard Euclidean distance.
-Like the Euclidean distance, this distance metric fails to account for phase and shape changes between time series.
+However, like the Euclidean distance, this distance metric fails to account for phase and shape changes between time series.
 
 To this end, we consider two different measures based on a $p$-dimensional Minkowski distance.
 The first is due to Batista et al.~\cite{batista14-cid} which attempts to account for time series complexity and has been shown to greatly improve the mean accuracy rates of time series comparison~\cite{giusti13-ecd}.
@@ -391,7 +438,7 @@ For both of these measures, we consider $p$-dimensional Minkowski distance where
 \subsection{Proposed Hash}
 
 Let $S$ be the space of $n$-point time series to be processed.
-Pick $a$ random lines in $\mathbb{R}^2$ and project each point $x_i$ onto each line $h_k$.
+Pick $a$ random lines in $\R^2$ and project each point $x_i$ onto each line $h_k$.
 Each line will be partitioned into buckets of size $\frac{r}{n}$ (here, we see the parametrization of the hash).
 In practice, we fix a number $M$ (say, $2^{32}$), and apply $h_r(x) = \frac{\pi(x)*n}{r} \bmod M$. 
 
