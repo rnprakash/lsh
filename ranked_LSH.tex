@@ -228,11 +228,11 @@ The following definitions let us formally define kernel transforms on time serie
 \end{definition}
 
 The key property of Hilbert spaces we wish to leverage is the norm induced by the inner product $\innerproduct{\cdot}{\cdot}_H$.
-This inner product define the higher order distance measure we wish to use on the raw observation space.
+This inner product defines the higher order distance measure we wish to use on the raw observation space.
 
 \begin{definition}[Kernel transform]\label{defn:kernel_trick}
     Let $X$ be an arbitrary space and $H$ be a Hilbert space with inner product $\innerproduct{\cdot}{\cdot}_H$.
-    $\kappa(\cdot, \cdot): X \times X \rightarrow H$ is a kernel transform if $\kappa(x,y) = \innerproduct{\phi(x)}{\phi(y)}_H$ for some $\phi: X \rightarrow H$.
+    $\kappa(\cdot, \cdot): X \times X \rightarrow \R$ is a kernel transform if $\kappa(x,y) = \innerproduct{\phi(x)}{\phi(y)}_H$ for some $\phi: X \rightarrow H$.
 \end{definition}
 
 Note that in Definition~\ref{defn:kernel_trick}, the mapping function $\phi$ need not be explicitly defined.
@@ -248,8 +248,8 @@ Note that $\kappa(x,y) = \innerproduct{\kappa_x}{\kappa_y}_H$, and thus the kern
 This demonstrates that we can consider arbitrary higher-order similarity measures using kernel functions on the space of observed samples.
 Furthermore, we can construct proper distance measures from the norm induced by the inner product on a RKHS.
 
-\begin{definition}[Hilbert norm-induced distance]
-    Given an input set $X$, a reproducing kernel $\kappa(\cdot, \cdot) \colon X \times X \rightarrow H$, where $H$ is a RKHS, define a distance measure on $X$ by:
+\begin{definition}[Hilbert norm-induced distance]\label{defn:norm_distance}
+    Given an input set $X$ and a reproducing kernel $\kappa$ for RKHS $H$: $\kappa(\cdot, \cdot) \colon X \times X \rightarrow \R$, define a distance measure on $X$ by:
     \begin{align*}
         d(x,y)^2 &= \norm{\phi(x) - \phi(y)}_H^2 = \innerproduct{\phi(x) - \phi(y)}{\phi(x) - \phi(y)}_H \\
         &= \innerproduct{z}{z}_H = \kappa(\phi^{-1}(z), \phi^{-1}(z)) \numberthis
@@ -389,6 +389,68 @@ A similar approach to Section~\ref{subsec:anomaly_detection} can be applied with
 Adjusting the set of threshold values confers the notion of closeness, which may be used to determine which sets of output traces resulted from the same input to a program, for example.
 \fi
 
+\section{Seminorms in Hilbert Spaces}
+\label{sec:sobolev}
+
+We have so far defined machinery which will, given a reproducing kernel $\kappa$ from the observation space, permit us to calculate higher order distances using the implicit feature map $\phi$ induced by the kernel function.
+Recall the kernel transform:
+
+\begin{align}
+    \kappa(x,y) = \innerproduct{\phi(x)}{\phi(y)}_H
+\end{align}
+
+From this, the induced distance measure is:
+
+\begin{align}
+    d(x,y) = \norm{\phi(x) - \phi(y)}_H
+\end{align}
+
+However, we may wish to understand behavior even more explicitly in this space by considering a functions derivatives.
+To this end, we consider the concept of \textit{seminorms}.
+
+\begin{definition}[Seminorm]
+    A seminorm $\norm{\cdot}_S$ on a space $S$ satisfies:
+    \begin{enumerate}[(i)]
+        \item $\norm{ax}_S = |a|\norm{x}_S$ for scalar $a$
+        \item $\norm{x + y}_S \le \norm{x}_S + \norm{y}_S$ (triangle inequality)
+    \end{enumerate}
+\end{definition}
+
+This has some benefits for time series classification which we seek to exploit.
+\begin{itemize}
+    \item \textbf{Shift-agnostic:} Let $f,g \in H$, a RKHS, and let $g = f + c$, where $c$ is a constant, and let both $f,g$ be $n$-differentiable.
+        The norms $\norm{f}_H, \norm{g}_H$ will vary drastically depending on $c$.
+        However, such shifting is not apparent with a derivative-based seminorm: $\norm{x}_S = {(\sum\limits_{k=1}^n \norm{D^k x}^p_H)}^{\frac{1}{p}}$.
+        Thus $\norm{g}_S = {(\sum\limits_{k=1}^n \norm{D^k (f+c)}^p_H)}^{\frac{1}{p}} = {(\sum\limits_{k=1}^n \norm{D^k f}^p_H)}^{\frac{1}{p}} = \norm{f}_S$.
+        Here, the operator $D$ is understood in a weak sense (see Section~\ref{subsec:weak_derivatives}).
+    \item \textbf{Scaling behavior:} Consider the seminorm $\norm{x}_S = {\sum\limits_{|\alpha| = 1}^n(\norm{D^{\alpha} x}^p_H)}^{\frac{1}{p}}$.
+        Let $f,g \in H$ be at least once differentiable with $g(x) = f(cx)$, $c$ a scalar.
+        Then, $\norm{g(x)}_S = \norm{f(cx)}_S = {\sum\limits_{|\alpha| = 1}^n(\norm{D^{\alpha} f(cx)}^p_H)}^{\frac{1}{p}} = r^{p-n} \norm{f(x)}_S$ where $n$ is the dimension of $H$.
+\end{itemize}
+
+Expanding on Definition~\ref{defn:norm_distance} to create a distance metric based on a seminorm, we consider the following derivative-based distance measure:
+
+\begin{align}
+    d(x,y) = \norm{\phi(x)-\phi(y)}_S = \norm{D (\phi(x) - \phi(y))}_H = \norm{\phi'(x) - \phi'(y)}_H
+\end{align}
+
+If we are able to impose additional structure onto the feature map $\phi(\cdot)$, the seminorm definition has much greater value.
+
+Suppose $\phi \colon X \rightarrow H$ is a feature map from input space $X$ to Hilbert space $H$, and that $\phi$ is surjective and once differentiable.
+Then, $\exists z$ such that $\phi'(x) - \phi'(y) = \phi(z)$ since $H$ is a vector space closed under addition, and $\phi$ is surjective.
+
+\begin{align}
+    d(x,y) = \norm{\phi'(x) - \phi'(y)}_H = \norm{\phi(z)}_H = \sqrt{\innerproduct{\phi(z)}{\phi(z)}_H} = \sqrt{\kappa_H(z,z)}
+\end{align}
+
+where $\kappa_H$ is the reproducing kernel of $H$.
+
+Note that while $d(\cdot,\cdot)$ as defined above is sub-additive~\cite{rosenlicht68-realanalysis}, it is not identically zero and is thus not a proper metric: $g = f + c$ meets $d(f,g) = 0$ even when $f \neq g$.
+
+Given a ``nice'' feature mapping $\phi$ from input space to a Hilbert space induced by a reproducing kernel, we can more intuitively and effectively categorize time series behavior and time series distance using seminorms in these spaces.
+However, this is not trivial, as Mercer's condition and theorem only guarantee the existence of $\phi$ given a positive semi-definite kernel and make no guarantees on its differentiability or surjectivity.
+We explore the potential for seminorm usage in the next section with an explicit kernel for anomaly detection.
+
 \section{Proposed Scheme}
 \label{sec:proposed_scheme}
 
@@ -396,7 +458,7 @@ We now propose a specific distance measure and kernel transform to maximize the 
 
 \subsection{Dynamic Time Warping}
 
-% Empirical evaluation of DTW on traces
+% Empirical evaluation of DTW on traces *for anomaly detection*
 
 \subsection{Minkowski-based Measures}
 
