@@ -123,16 +123,16 @@ For example, the \textit{trace} of system calls on a system over time is an $n$-
 
 Our primary observation with regards to time series leakage is that information may only be learned from time series observations if the underlying distributions are distinguishable.
 
-\begin{definition}[Distribution-based leakage]\label{defn:dist_leakage}
+\begin{definition}[Distribution-based behavior dissimilarity]\label{defn:dist_leakage}
     Consider two distinct program behaviors $x$ and $x'$ and resulting time series for each behavior drawn from $D_x$ and $D_{x'}$ respectively.
     Let $t(x)$ and $t(x')$ be two time series resulting from behaviors $x, x'$, drawn from $D_x, D_{x'}$ respectively.
     Observing $t(x)$ and $t(x')$ can only leak information about $x$ and $x'$ if $D_x$, $D_{x'}$ are statistically distinguishable.
 \end{definition}
 
 While Definition~\ref{defn:dist_leakage} is useful when one can carefully observe many samples from different distributions to assess the distinguishability of the underlying distributions, it is difficult to use in practice.
-Instead, we propose a slightly different definition of leakage:
+Instead, we propose a slightly different definition of behavior dissimilarity:
 
-\begin{definition}[Time series leakage]\label{defn:leakage}
+\begin{definition}[Time series behavior dissimilarity]\label{defn:leakage}
     Consider two distinct program behaviors $x$ and $x'$ with output distributions $D_x$ and $D_{x'}$, and let $d(\cdot,\cdot)$ be a distance function on the output time series.
     Let $T_x = \{t_k\}$ be a sequence of time series drawn from $D_x$.
     Define $r$ as the minimum distance such that $d(t_i, t_j) \le r~\forall~t_i,t_j \in T_x$
@@ -140,7 +140,7 @@ Instead, we propose a slightly different definition of leakage:
     We say that observing time series $t(x)$ and $t(x')$ can \textbf{leak information with respect to $d(\cdot,\cdot)$} about $x$ and $x'$ if $d(t(x),t(x')) > r$.
 \end{definition}
 
-Definition~\ref{defn:leakage} describes time series leakage with respect to a specific distance function applied on observation points.
+Definition~\ref{defn:leakage} describes time series behavior with respect to a specific distance function applied on observation points.
 If time series resulting from behavior $x$ can be separated from time series from $x'$ by a distance of more than $r$, there is potential information leakage through this channel.
 
 \subsection{Hashing}
@@ -259,6 +259,11 @@ Furthermore, we can construct proper distance measures from the norm induced by 
 Note that we have still not explicitly defined the feature map $\phi(\cdot)$.
 Instead, we contend that such a function exists that allows our transform to take place, which we prove in Section~\ref{subsec:proposed_kernel}.
 
+\subsection{(Weak) Derivatives on Time Series}
+\label{subsec:weak_derivatives}
+
+\todo{Theory of weak derivatives for discrete time series.}
+
 \section{Kernelized Hashing Model for Time Series}
 \label{sec:kernel_hashing}
 
@@ -348,7 +353,7 @@ Let ${\LSH}_R$ be a RKLSH family which approximates a measure on time series dis
 % Two neighborhoods are ``ranked'' based on the lowest tier on which they reside in the same neighborhood
 
 \begin{definition}[LSH neighborhood]\label{defn:neighborhood}
-    A \textbf{neighborhood} with respect to distance threshold $r_i \in R$ and LSH hash function $h \in {\LSH}_R$} is a set of points $S$ such that $\forall s_i, s_j \in S, h(s_i) = h(s_j)$.
+    A \textbf{neighborhood} with respect to distance threshold $r_i \in R$ and LSH hash function $h \in {\LSH}_R$ is a set of points $S$ such that $\forall s_i, s_j \in S, h(s_i) = h(s_j)$.
 \end{definition}
 
 The goal of hashing the set of input points is to efficiently compute sets of \textit{approximate nearest neighbors} (ANN) such that the behavior of each point can be classified.
@@ -456,9 +461,6 @@ We explore the potential for seminorm usage in the next section with an explicit
 
 We now propose a specific distance measure and kernel transform to maximize the impact of our RKLSH algorithm for anomaly detection.
 
-\subsection{Dynamic Time Warping}
-
-% Empirical evaluation of DTW on traces *for anomaly detection*
 
 \subsection{Minkowski-based Measures}
 
@@ -497,7 +499,8 @@ $c$ is a scalar penalty factor for out of phase alignment between $x$ and $y$.
 
 For both of these measures, we consider $p$-dimensional Minkowski distance where the original time series have length $p$.
 
-\subsection{Proposed Hash}
+\subsection{Proposed Hash and Kernel}
+\label{subsec:proposed_kernel}
 
 Let $S$ be the space of $n$-point time series to be processed.
 Pick $a$ random lines in $\R^2$ and project each point $x_i$ onto each line $h_k$.
@@ -508,16 +511,17 @@ Points are considered to intersect if they hash to the same bucket on a fixed nu
 We propose that the number of hash functions on which points must collide to determine intersection be a tunable parameter.
 Time series which intersect on more than $\frac{n}{2}$ points (in time order) are said to be candidate pairs for $r$-closeness.
 
-\section{Key Takeaways}
+\section{Results and Evaluation}
 
-\begin{itemize}
-    \item Use hash that approximates time series distance.
-    \item Compose multiple kernels or hash families to obtain ranked ``normality'' measure.
-    \item Apply ranking to classification by an unsupervised classifier to determine amount of leakage possible without prior knowledge.
-    \item Apply ranking to normality (anomaly) detection.
-    \item Perform continuous hashing on rolling windows of execution across channels of multiple resources to classify activity in real-time.
-    \item To be considered: Overlay results with ShapeGD\@.
-\end{itemize}
+\subsection{Dynamic Time Warping}
+
+% Empirical evaluation of DTW on traces *for anomaly detection*
+\todo{We speculate that DTW has a fundamental weakness when dealing with time series.
+    ``Stretching'' and ``folding'' time series to fit a distance measure errs on the side of similarity, which is unacceptable for anomaly detection.}
+
+\subsection{Our Scheme}
+
+\todo{Proof of hash approximating kernel distance measure, evaluation of detection probability, and algorithmic complexity evaluation.}
 
 \bibliographystyle{unsrt}
 \bibliography{../bibliography/bibliography}
