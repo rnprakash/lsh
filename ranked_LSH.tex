@@ -65,7 +65,7 @@
 \renewcommand{\todo}[1]{{\color{red} TODO\@: {#1}}}
 
 \setlength{\droptitle}{-8em}
-\title{Ranked Leakage-Sensitive Hashing}
+\title{Behavior Sensitive Hashing}
 \author{Rohith Prakash}
 \date{}
 
@@ -87,7 +87,7 @@ This problem of side channel leakage has been extensively studied in the past by
 
 In this paper, we consider the problem of efficiently learning and classifying the behavior of side channels through observed time series using probabilistic hashing techniques.
 We formally define the probability of information leakage on a set of such time series traces observed at a fixed granularity with respect to a distance measure.
-By expanding on that intuition, we propose a \textit{ranked leakage-sensitive hashing} scheme based on previous locality-sensitive hashing schemes~\cite{Kulis12-KLSH,Jiang15-KLSH,Kim16-SLSH} that exploits the probability of information leakage for nearest neighbor computations in anomaly detection and behavior classification.
+By expanding on that intuition, we propose a \textit{ranked behavior-sensitive hashing} scheme based on previous locality-sensitive hashing schemes~\cite{Kulis12-KLSH,Jiang15-KLSH,Kim16-SLSH} that exploits the probability of information leakage for nearest neighbor computations in anomaly detection and behavior classification.
 We believe that these contributions lead to a novel, strong characterization of leakage over side channels, giving rise to a new notion of \textit{dimensionality} of a channel.
 We show that this can determine the effectiveness of leakage prevention schemes as well as discuss possibilities of projecting onto higher and lower dimensional spaces to improve anomaly detection or improve the effectiveness of leakage prevention schemes.
 
@@ -123,7 +123,7 @@ For example, the \textit{trace} of system calls on a system over time is an $n$-
 
 Our primary observation with regards to time series leakage is that information may only be learned from time series observations if the underlying distributions are distinguishable.
 
-\begin{definition}[Distribution-based behavior dissimilarity]\label{defn:dist_leakage}
+\begin{definition}[Distribution-based behavior leakage]\label{defn:dist_leakage}
     Consider two distinct program behaviors $x$ and $x'$ and resulting time series for each behavior drawn from $D_x$ and $D_{x'}$ respectively.
     Let $t(x)$ and $t(x')$ be two time series resulting from behaviors $x, x'$, drawn from $D_x, D_{x'}$ respectively.
     Observing $t(x)$ and $t(x')$ can only leak information about $x$ and $x'$ if $D_x$, $D_{x'}$ are statistically distinguishable.
@@ -132,12 +132,15 @@ Our primary observation with regards to time series leakage is that information 
 While Definition~\ref{defn:dist_leakage} is useful when one can carefully observe many samples from different distributions to assess the distinguishability of the underlying distributions, it is difficult to use in practice.
 Instead, we propose a slightly different definition of behavior dissimilarity:
 
-\begin{definition}[Time series behavior dissimilarity]\label{defn:leakage}
-    Consider two distinct program behaviors $x$ and $x'$ with output distributions $D_x$ and $D_{x'}$, and let $d(\cdot,\cdot)$ be a distance function on the output time series.
-    Let $T_x = \{t_k\}$ be a sequence of time series drawn from $D_x$.
-    Define $r$ as the minimum distance such that $d(t_i, t_j) \le r~\forall~t_i,t_j \in T_x$
+\begin{definition}[Time series behavior leakage]\label{defn:leakage}
+    Consider two distinct program behaviors $x$ and $x'$ with output distributions $D_x$ and $D_{x'}$.
+    
+    We say that program behaviors $x$ and $x'$ may \textbf{leak behavior information} regarding $x$ and $x'$ if there exists a distance measure $d(\cdot, \cdot)$ such that $\forall~t_{x_i}, t_{x_j} \sim D_x$ and $t_{x'_i}, t_{x'_j} \sim D_{x'}$, the following hold:
+    \begin{align*}
+        \mathbf{E}[d(t_{x_i}, t_{x'_i})] > \mathbf{E}[d(t_{x_i}, t_{x_j})],\\
+        \mathbf{E}[d(t_{x_i}, t_{x'_i})] > \mathbf{E}[d(t_{x'_i}, t_{x'_j})]. \numberthis
+    \end{align*}
 
-    We say that observing time series $t(x)$ and $t(x')$ can \textbf{leak information with respect to $d(\cdot,\cdot)$} about $x$ and $x'$ if $d(t(x),t(x')) > r$.
 \end{definition}
 
 Definition~\ref{defn:leakage} describes time series behavior with respect to a specific distance function applied on observation points.
@@ -473,11 +476,29 @@ We now propose a specific distance measure and kernel transform to maximize the 
 
 \subsection{Semi-norm induced measure}
 
-Consider the following function on the space of time series:
+Consider the following measure on $S$, the space of time series:
 
 \begin{equation}
-    d(x,y) = \sqrt{\sum\limits_{i=0}^{N} (x_i - y_i)^2} + c\sqrt{\sum\limits_{i=0}^{N} ({D(x)}_i - {D(y)}_i)^2}
+    M(x,y) = \sqrt{\sum\limits_{i=0}^{N} (x_i - y_i)^2} + c\sqrt{\sum\limits_{i=0}^{N} ({D^1 x}_i - {D^1 y}_i)^2}
 \end{equation}
+
+$D^1 x_i$ denotes the first pointwise (weak) derivative of $x$ at time $i$.
+We note that $M(x,y) = d(x,y) + c d(D^1 x, D^1 y)$, where $d(\cdot, \cdot)$ is the standard Euclidean distance.
+
+\begin{claim}[Subadditivity of $M$]
+    Let $M \colon S \times S \to \R$ as described above be a measure on time series.
+    $M$ is a distance metric.
+\end{claim}
+
+\begin{proof}
+    We rewrite $M(x,y) = d(x,y) + c d(D^1 x, D^1 y)$.
+    As Euclidean distance is a distance metric, $M(x,y) = 0$ iff $x = y$ holds trivially.
+    Fix $z \in S$.
+    $d(x,y) \le d(x,z) + d(z,y), d(D^1 x, D^1 y) \le d(D^1 x, D^1 z) + d(D^1 z, D^1 y)$ by the sub-additivity of Euclidean distance.
+    Therefore, $M(x,y) = d(x,y) + c d(D^1 x, D^1 y) \le d(x,z) + d(z,y) + c d(D^1 x, D^1 z) + c d(D^1 z, D^1 y) = M(x,z) + M(z,y)$ and $M$ is sub-additive.
+
+\end{proof}
+
 % Let E(x,y) be Euclidean distance, and S(x,y) be seminorm measure on Dx, Dy
 % Then define d(x,y) = E(x,y) + cS(x,y)
 % d(x,y) = 0 iff x = y

@@ -1,0 +1,128 @@
+\documentclass[a4paper]{article}
+\usepackage[margin=1.5in]{geometry}
+\usepackage{parskip,amsmath,mathtools,amssymb,amsfonts,mathrsfs}
+\usepackage{amsthm}
+\usepackage{enumerate}
+\usepackage{url,titling}
+\usepackage{fancyhdr,hyperref}
+\usepackage{booktabs,color,tabularx}
+\newcommand\numberthis{\addtocounter{equation}{1}\tag{\theequation}}
+\newcommand{\norm}[1]{\left\lVert#1\right\rVert}
+\newcommand{\innerproduct}[2]{\langle{}#1,#2\rangle{}}
+\newtheoremstyle{def}
+{8pt}
+{5pt}
+{}
+{}
+{\bfseries}
+{:}
+{.5em}
+{}
+
+\newtheoremstyle{thm}
+{8pt}
+{5pt}
+{\itshape}
+{}
+{\bfseries}
+{:}
+{.5em}
+{}
+
+\theoremstyle{def}
+\newtheorem{definition}{Definition}
+\newtheorem{assumption}[definition]{Assumption}
+\theoremstyle{thm}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}[proposition]
+\newtheorem{claim}[proposition]{Claim}
+\newtheorem{theorem}[proposition]{Theorem}
+\newtheorem{corollary}{Corollary}[proposition]
+%\newenvironment{proof}[1][]{\textbf{Proof:} }{\hfill$\square$}
+
+%\setlength{\textfloatsep}{6pt}
+
+% Math symbols
+\DeclareMathAlphabet{\mathcal}{OMS}{cmsy}{m}{n}
+\newcommand{\A}[0]{\mathcal{A}}
+\newcommand{\e}[1]{\text{e}^{#1}}
+\newcommand{\E}[1]{\mathbf{E}\left[#1\right]}
+\newcommand{\p}[0]{\mathbf{p}}
+\newcommand{\q}[0]{\mathbf{q}}
+\newcommand{\R}[0]{\mathbb{R}}
+\newcommand{\N}[0]{\mathbb{N}}
+\newcommand{\LSH}[0]{\mathcal{H}}
+\newcommand{\re}[1]{\frac{1}{#1}}
+\newcommand{\set}[1]{\lbrace\ 0,1 \rbrace^{#1}}
+\newcommand{\X}[0]{\mathcal{X}}
+\newcommand{\Y}[0]{\mathcal{Y}}
+\newcommand{\Z}[0]{\mathbb{Z}}
+\newcommand{\aand}[0]{\text{ and }}
+\newcommand{\iif}[0]{\text{ if }}
+\newcommand{\ow}[0]{\text{ otherwise}}
+
+\newcommand{\todo}[1]{}
+\renewcommand{\todo}[1]{{\color{red} TODO\@: {#1}}}
+
+\setlength{\droptitle}{-8em}
+\title{Quantifying the Potential for Side-Channel Leakage}
+\author{Rohith Prakash}
+\date{}
+
+\begin{document}
+\maketitle{}
+
+\begin{abstract}
+    In this paper, we study the problem of determining and measuring the probability of side-channel leakage being present on a system.
+    We discuss the shortcomings of commonly used information theoretic metrics such as channel capacity and mutual information, specifically how they have been misapplied and why they fail to truly determine if side-channel leakage is possible or if potential leakage is due to sensitive inputs.
+    To accurately quantify leakage probabilities, we propose a \textit{distribution-based leakage} metric which measures the probability that an adversary may infer sensitive inputs as a result of the system processing the input.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+
+%\section{Background and Definitions}
+%\label{sec:definitions}
+%\label{sec:background}
+
+%\subsection{Side Channel Attacks}
+%\label{subsec:side_channels}
+
+Side channel exploitation, anomaly detection, and covert channel communication are problems of detecting or exploiting leakage over information channels.
+Side and covert channels exists when observable differences in system behavior occur as the result of actions performed by a \textit{victim} or sending process.
+These attacks typically involve an adversary learning secret information over the channel, based on the behavior of a victim process.
+Anomaly detection, on the other hand, involves detectors running on a system analyzing and categorizing observed behavior in real time.
+In this setting, a malicious program leaks information about its behavior through an observed channel.
+
+\section{Information Leakage}
+\label{sec:information_leakage}
+
+We first formalize the concept of side channel leakage.
+
+\begin{definition}[Side channel leakage]\label{defn:side_channel}
+    Consider a system $S$ performing computation $f$ on a set of inputs $X$.
+    Fix a method $O$ of observing the behavior of $S$.
+    A \textbf{side channel} leak occurs if $O(f(x_i))$ is \textit{statistically distinguishable} from $O(f(x_j))$ for any $x_i \neq x_j \in X$.
+\end{definition}
+
+What \ref{defn:side_channel} describes is that, given a method of observing the behavior of a system, side channel leaks may occur if there are observable differences in system behavior as a result of processing two different inputs.
+\textit{Observation methods} of a system may describe
+
+Our primary observation with regards to such leakage is that information may only be learned from system observations if the underlying distributions which affect these observations are distinguishable.
+
+\begin{theorem}[Distribution-based leakage]\label{defn:dist_leakage}
+    Fix a method $O$ of observing behavior on a system $S$.
+    Consider two distinct program behaviors $x$ and $y$ on $S$, with output distributions $D_x$ and $D_y$ respectively.
+    Observing $O(x)$ and $O(y)$ drawn from $D_x$ and $D_y$ respectively can only leak information about $x$ and $y$ if $D_x$, $D_y$ are statistically distinguishable.
+\end{theorem}
+
+We note that output distributions $D_i$ are defined with respect to observation method $O$ on $S$. 
+
+\begin{corollary}[Privacy-preserving computations]
+    A computation $f$ with input set $X = \{x_1, \cdots, x_n \}$ and output distributions $D = \{d_1 = f(x_1), \cdots, d_n = f(x_n)\}$ (w.r.t.\ observation method $O$) is privacy preserving if and only if $d_1 = d_i~\forall~d_i \in D$.
+\end{corollary}
+
+\bibliographystyle{unsrt}
+\bibliography{../../bibliography/bibliography}
+
+\end{document}
