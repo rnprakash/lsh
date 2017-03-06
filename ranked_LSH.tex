@@ -6,6 +6,8 @@
 \usepackage{url,titling}
 \usepackage{fancyhdr,hyperref}
 \usepackage{booktabs,color,tabularx}
+\usepackage[ruled,lined]{algorithm2e}
+\usepackage{bm}
 \newcommand\numberthis{\addtocounter{equation}{1}\tag{\theequation}}
 \newcommand{\norm}[1]{\left\lVert#1\right\rVert}
 \newcommand{\innerproduct}[2]{\langle{}#1,#2\rangle{}}
@@ -44,6 +46,8 @@
 
 % Math symbols
 \DeclareMathAlphabet{\mathcal}{OMS}{cmsy}{m}{n}
+\DeclarePairedDelimiter{\ceil}{\lceil}{\rceil}
+\DeclarePairedDelimiter{\floor}{\lfloor}{\rfloor}
 \newcommand{\A}[0]{\mathcal{A}}
 \newcommand{\e}[1]{\text{e}^{#1}}
 \newcommand{\E}[1]{\mathbf{E}\left[#1\right]}
@@ -406,13 +410,13 @@ We discuss this in greater depth in Section~\ref{subsec:ranked_lsh}
 \subsection{Kernel Model}
 \label{subsec:kernel_model}
 
-Consider a set of $n$ samples $D = \{x_1,\ldots,x_n\} \subset \R^d$ with similarity measure $\kappa \colon D \times D \rightarrow \R$ defined by $\kappa(x,y) = \innerproduct{\phi(x)}{\phi(y)}_H$, with $H$ being a RKHS.
+Consider a space of samples $S = \{x_1,\ldots,x_n\} \subset \R^d$ with similarity measure $\kappa \colon S \times S \rightarrow \R$ defined by $\kappa(x,y) = \innerproduct{\phi(x)}{\phi(y)}_H$, with $H$ being a RKHS.
 We now consider the effects of a positive-semidefinite similarity measure $\kappa(\cdot, \cdot)$ as well as its corresponding distance measure $\tilde{\kappa}(x,y) = \|\phi(x) - \phi(y)\|_H$, the norm induced by the RKHS.
 Note that from Definition~\ref{defn:kernel_trick}, we do not need to explicitly define the mapping $\phi(\cdot)$ to an RKHS.
 
 \begin{definition}[Kernelized LSH]\label{defn:kernel_lsh}
     %Let $\kappa_r(\cdot, \cdot) = \kappa()$ 
-    ${\LSH}_R = \{ {\LSH}_r \}_{r \in R}$ is a $(R, p, q)$-sensitive ranked, kernelized LSH family if, for any $x,y \in D$:
+    ${\LSH}_R = \{ {\LSH}_r \}_{r \in R}$ is a $(R, p, q)$-sensitive ranked, kernelized LSH family if, for any $x,y \in S$:
     \begin{enumerate}[(i)]
         \item If $\tilde{\kappa}(x,y) \le r, \Pr[h_r(x) = h_r(y)] > p$
         \item If $\tilde{\kappa}(x,y) \ge r, \Pr[h_r(x) = h_r(y)] < q$
@@ -451,23 +455,56 @@ The similarity of any two points within a neighborhood can be ranked to give an 
 
 Thus, by applying this tiered ANN calculation, we are able to \textit{rank} the similarity of two elements by examining the threshold at which their hashes collide.
 
-\subsection{Anomaly Detection on time series}
+\section{Anomaly Detection on Time Series}
 \label{subsec:anomaly_detection}
 
-What this theory describes is that similar time series may be grouped together and ranked by their closeness via a kernel distance measure $\tilde{\kappa}$~\cite{Hachiya13-NSH}.
+The above theory provides intuition that similar time series may be grouped together and ranked by their closeness via a kernel distance measure $\tilde{\kappa}$~\cite{Hachiya13-NSH}.
 In the context of anomaly detection, we can apply this scheme to a set of \textit{normal} traces (time series of utilization, label encoded syscalls, etc.) to determine what thresholds and clusters constitute normal execution with a finer granularity.
-Instead of a binary label of \textit{normal} vs \textit{anomalous}, we can instead stratify applications by types of execution.
-We speculate that this makes our detection algorithm more robust to adversarial interference.
 
-Given the initial LSH clustering of normal traces, we can continuously apply the hashing scheme to testing traces over a rolling window to categorize their behavior.
+Instead of a binary label of \textit{normal} vs \textit{anomalous}, we stratify applications by behavior exhibited during execution.
 Traces which do not match enough previously ``normal'' clusters over the set of thresholds may be considered to represent anomalous activity.
 
-The streams of time series our LSH algorithm considers have indeterminate length, so we consider fixed fixed observation periods and hash time series segments.
-However, performing this real-time anomaly detection still leaves the issue of a malicious program changing behavior to match different benign programs during different observation periods.
-Unless such behavioral changes were present in the original training set, this behavior should be considered anomalous.
+\subsection{Distance Approximations in Real-Time}
+\label{subsec:time_series}
 
-To combat behavioral changes in malicious programs, we randomize the observation periods for each distance threshold $r_i$ in the LSH algorithm.
-This guarantees that such behavior changes will be observed during the hashing process for some distance thresholds.
+We have so far defined a kernelized hash family (Definition~\ref{defn:kernel_lsh}) over some arbitrary space $S$, which assumes that we treat an entire (finite) time series as a single element in this space and compute distances on these full time series.
+However, to compute distances between time series in real-time, we must make some adjustments to account for each time series being an incoming stream of data.
+
+To determine the perceived behavior of time series in real-time with respect to a distance measure $\tilde{\kappa}(\cdot,\cdot)$, we \textit{segment} the time series into overlapping windows of length $k$, with an overlap of $\floor[\big]{\frac{k}{2}}$ points.
+We now construct a RKLSH family over the space of such $k$-length time series segments to satisfy the above theory.
+
+In the context of real-time anomaly detection, this has the advantage of decomposing examined time series into finite time series of the same length, reducing computation by restricting time series length to a variable parameter, and allowing us to define \textit{behavior over time} as we hash each segment independently.
+
+\begin{algorithm}
+    \SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}
+    \SetKwData{Raise}{Raise}
+
+    \Input{$t = (\ldots, t_i, \ldots) \in S$, real-time time series;\\
+        $R$, set of thresholds;\\
+        $K$, window sizes, w.r.t. $R$;\\
+        $\phi \colon S \rightarrow H$, feature map;\\
+        $a$, number of hash functions;\\
+        $M \in \N$;\\
+        $d \colon H \times H \rightarrow \R^+$, distance metric;\\
+        $A_r(h)$, function on hash values for each $r \in R$. $A_r$ maps known inputs to $1$, unknown (anomalous) inputs to $0$.\\
+    }
+    \Output{Behavior hash value for time series at every $\floor{\frac{k}{2}}$ points.\\
+        Signals anomalies when detected}
+    \For{$k \in K$}{
+        \If{$\mathtt{len}(t) \bmod k = 0$}{
+            Let $r$ be the corresponding window size for $k$.\\
+            Let $t_k$ = $t[-k:]$\\
+            $P = \{ \pi_{h_a}(\phi(t_k)\}$ \tcc*[f]{project $\phi(t_k)$ onto $a$ random hyperplanes $h_a$}\\
+            Define $v_P(r) = \min\limits_{p \in P}[\frac{d(\bm{0}, p)}{r} \bmod M]$\\
+            $D = \{ v_P(r) \mid r \in R \}$ \tcc*[f]{min distance from origin to projected point in units $r$}\\
+            Define $R_i = \{ r_j \in R \mid j \ge i \}$\\
+            \If{$\exists~i$ such that $\forall r_j \in R_i, |\{A_r(v_P(r_j)) = 0\}| \ge |\frac{R_i}{2}|$}{
+                \Raise{anomaly}
+            }
+        }
+    }
+    \caption{Real-time Behavioral Hash for Time Series}
+\end{algorithm}
 
 \section{Proposed Scheme}
 \label{sec:proposed_scheme}
@@ -510,46 +547,6 @@ We note that $M(x,y) = d(x,y) + c d(D^1 x, D^1 y)$, where $d(\cdot, \cdot)$ is t
 % Pick $n$ planes and bucketize
 % Do the same for the central differential of the time series
 % Sum bucket #s (TODO: no better way to do this?)
-
-
-
-\iffalse
-Consider the Minkowski distance:
-
-\begin{align}
-    M(x,y) = {(\sum\limits_k |x_k - y_k|^p)}^{1/p}
-\end{align}
-
-For $p \ge 1$, $M(\cdot,\cdot)$ is a distance metric due to Minkowski's inequality~\cite[p. 190]{wheeden15-measure}.
-Additionally, for $p = 2$, this is the standard Euclidean distance.
-However, like the Euclidean distance, this distance metric fails to account for phase and shape changes between time series.
-
-To this end, we consider two different measures based on a $p$-dimensional Minkowski distance.
-The first is due to Batista et al.~\cite{batista14-cid} which attempts to account for time series complexity and has been shown to greatly improve the mean accuracy rates of time series comparison~\cite{giusti13-ecd}.
-Consider the following \textit{complexity measure}:
-
-\begin{align*}
-    C(x) = \sqrt{\sum\limits_i {(q_i - q_{i+1})}^2} \numberthis
-\end{align*}
-
-Using this complexity measure, we define a \textit{complexity-invariant} distance measure based on the Minkowski distance $M(\cdot,\cdot)$:
-
-\begin{align*}
-    d(x,y) = M(x,y) * \frac{\max(C(x),C(y))}{\min(C(x),C(y))} \numberthis
-\end{align*}
-
-The second measure we consider attempts to correlate Minkowski distance across time with an additional penalty term for time series which are out of phase:
-
-\begin{align*}
-    d(x,y) = \min\limits_{i,j<\frac{n}{2}} \{ M(x[i:N],y[j:N]) + c*(i+j) \} \numberthis \\
-\end{align*}
-
-where $x,y$ have length $n$ and $N = n - \max(i,j)$.
-$c$ is a scalar penalty factor for out of phase alignment between $x$ and $y$.
-
-For both of these measures, we consider $p$-dimensional Minkowski distance where the original time series have length $p$.
-
-\fi
 
 \subsection{Proposed Hash and Kernel}
 \label{subsec:proposed_kernel}
