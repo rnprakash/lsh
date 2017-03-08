@@ -513,40 +513,22 @@ We now propose a specific distance measure and kernel transform to maximize the 
 
 \subsection{Semi-norm induced measure}
 
-Consider the following measure on $S$, the space of time series:
+Consider the following feature map $\phi(\cdot)$:
 
-\begin{equation}
-    M(x,y) = \sqrt{\sum\limits_{i=0}^{N} (x_i - y_i)^2} + c\sqrt{\sum\limits_{i=0}^{N} ({D^1 x}_i - {D^1 y}_i)^2}
-\end{equation}
+\begin{align*}
+    x$\phi \colon S & \rightarrow H\\
+    s &\mapsto (s,D^1 s) \numberthis \label{eqn:phi}
+\end{align*}
 
-$D^1 x_i$ denotes the first pointwise (weak) derivative of $x$ at time $i$.
-We note that $M(x,y) = d(x,y) + c d(D^1 x, D^1 y)$, where $d(\cdot, \cdot)$ is the standard Euclidean distance.
+Where $D^1 s$ represents the time series of point-wise first derivatives of $s$.
 
-\begin{claim}[Subadditivity of $M$]
-    Let $M \colon S \times S \to \R$ as described above be a measure on time series.
-    $M$ is a distance metric.
+\begin{claim}[Reproducing Kernel]
+    $\phi(\cdot)$ (Equation~\ref{eqn:phi}) defines a reproducing kernel $\kappa \colon X \times X \rightarrow H$ with $\kappa(f, g) = \innerproduct{\phi(f)}{\phi{(g)}}_H$ for $f,g \in X$ and $\norm{h}_H = \sqrt{\sum\limits_i{h_i^2} + \sum\limits_i{(D^1 h_i)^2}}$ for $h \in H$.
 \end{claim}
 
 \begin{proof}
-    We rewrite $M(x,y) = d(x,y) + c d(D^1 x, D^1 y)$.
-    As Euclidean distance is a distance metric, $M(x,y) = 0$ iff $x = y$ holds trivially.
-    Fix $z \in S$.
-    $d(x,y) \le d(x,z) + d(z,y), d(D^1 x, D^1 y) \le d(D^1 x, D^1 z) + d(D^1 z, D^1 y)$ by the sub-additivity of Euclidean distance.
-    Therefore, $M(x,y) = d(x,y) + c d(D^1 x, D^1 y) \le d(x,z) + d(z,y) + c d(D^1 x, D^1 z) + c d(D^1 z, D^1 y) = M(x,z) + M(z,y)$ and $M$ is sub-additive.
-
+    
 \end{proof}
-
-% Let E(x,y) be Euclidean distance, and S(x,y) be seminorm measure on Dx, Dy
-% Then define d(x,y) = E(x,y) + cS(x,y)
-% d(x,y) = 0 iff x = y
-% E and S are subadditive so d is as well:
-%   $d(x,y) = E(x,y) + cS(x,y) \le (E(x,z) + cS(x,z)) + (E(z,y) + cS(z,y)) = d(x,z) + d(z,y)
-% Symmetric and non-negative, so d is a distance metric
-
-% Approximate Euclidean distance by projecting onto random planes
-% Pick $n$ planes and bucketize
-% Do the same for the central differential of the time series
-% Sum bucket #s (TODO: no better way to do this?)
 
 \subsection{Proposed Hash and Kernel}
 \label{subsec:proposed_kernel}
