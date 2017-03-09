@@ -511,23 +511,76 @@ In the context of real-time anomaly detection, this has the advantage of decompo
 
 We now propose a specific distance measure and kernel transform to maximize the impact of our RKLSH algorithm for anomaly detection.
 
-\subsection{Semi-norm induced measure}
+\subsection{Seminorm Induced Space}
 
-Consider the following feature map $\phi(\cdot)$:
+Consider a Hilbert space $H$ over finite-length, discrete-time time series equipped with the following norm:
 
-\begin{align*}
-    x$\phi \colon S & \rightarrow H\\
-    s &\mapsto (s,D^1 s) \numberthis \label{eqn:phi}
-\end{align*}
-
+\begin{align}\label{eqn:norm}
+    \norm{x}_H = \sqrt{\sum\limits_i{x_i^2} + \sum\limits_i{(D^1 x_i)^2}}
+\end{align}
 Where $D^1 s$ represents the time series of point-wise first derivatives of $s$.
 
-\begin{claim}[Reproducing Kernel]
-    $\phi(\cdot)$ (Equation~\ref{eqn:phi}) defines a reproducing kernel $\kappa \colon X \times X \rightarrow H$ with $\kappa(f, g) = \innerproduct{\phi(f)}{\phi{(g)}}_H$ for $f,g \in X$ and $\norm{h}_H = \sqrt{\sum\limits_i{h_i^2} + \sum\limits_i{(D^1 h_i)^2}}$ for $h \in H$.
+This formulation arises from discussion of seminorms (Section~\ref{subsec:seminorms}) for their scaling and shifting behavior.
+However, we show that this is in fact a proper norm and additionally explore the Hilbert space and inner product which induce this norm to derive an exact distance metric.
+
+\begin{claim}
+    The following seminorm is a proper norm:
+    \begin{align*}
+        \norm{x}_H = \sqrt{\sum\limits_i{x_i^2} + \sum\limits_i{(D^1 x_i)^2}}
+    \end{align*}
 \end{claim}
 
 \begin{proof}
-    
+    \begin{align*}
+        \norm{x + y}_H = \sqrt{\sum\limits_i{(x_i + y_i)^2} + \sum\limits_i{(D^1 (x_i + y_i))^2}} \\
+        \le \sqrt{\sum\limits_i{x_i^2} + \sum\limits_i{y_i^2} + \sum\limits_i{(D^1 x_i)^2} + \sum\limits_i{(D^1 y_i)^2}}\\
+        \le \sqrt{\sum\limits_i{x_i^2} + \sum\limits_i{(D^1 x_i)^2}} + \sqrt{\sum\limits_i{y_i^2} + \sum\limits_i{(D^1 y_i)^2}}\\
+        = \norm{x}_H + \norm{y}_H \numberthis
+    \end{align*}
+
+    \begin{align*}
+        \norm{a x}_H = \sqrt{\sum\limits_i{(a x_i)^2} + \sum\limits_i{(D^1 a x_i)^2}}\\
+        = \sqrt{a^2 \sum\limits_i{x_i^2} + a^2 \sum\limits_i{(D^1 x_i)^2}}\\
+        = |a| \norm{x}_H \numberthis
+    \end{align*}
+
+    \begin{align*}
+        \norm{x} = 0 \Leftrightarrow \sqrt{\sum\limits_i{x_i^2} + \sum\limits_i{(D^1 x_i)^2}} = 0\Leftrightarrow x = \bm{0} \numberthis
+    \end{align*}
+\end{proof}
+
+\begin{claim}
+    The norm in Equation~\ref{eqn:norm} is naturally induced by an inner product of the following form:
+    \begin{align}
+        \innerproduct{x}{y}_H = \sum\limits_i(x_i y_i) + \sum\limits_i(D^1 x_i D^1 y_i)
+    \end{align}
+\end{claim}
+
+\begin{proof}
+    \begin{align*}
+        \sqrt{\innerproduct{x}{x}_H} = \sqrt{\sum\limits_i{x_i^2} + \sum\limits_i{(D^1 x_i)^2}} = \norm{x}_H
+    \end{align*}
+\end{proof}
+
+\subsection{Kernel Transform}
+We now define a feature map from the raw observation space of time series $S$ to the constructed Hilbert space $H$.
+
+\begin{claim}[Reproducing Kernel]
+    Consider the feature map $\phi(\cdot)$ from $S$ to $H$ with norm as defined above:
+    \begin{align*}
+        \phi \colon S & \rightarrow H\\
+        s &\mapsto (s,D^1 s) \label{eqn:phi}
+    \end{align*}
+    $\phi(\cdot)$ defines a reproducing kernel $\kappa \colon X \times X \rightarrow H$ with $\kappa(f, g) = \innerproduct{\phi(f)}{\phi{(g)}}_H$ for $f,g \in X$ and $\norm{h}_H = \sqrt{\sum\limits_i{h_i^2} + \sum\limits_i{(D^1 h_i)^2}}$ for $h \in H$.
+\end{claim}
+
+\begin{proof}
+    %We first note that $\phi(\cdot)$ is a linear map:
+    %\begin{align*}
+    %    \phi(a x + b y) = (a x + b y, D^1 (a x + b y)) = a (x, D^1 x) + b (y, D^1 y) = a \phi(x) + b \phi(y)
+    %\end{align*}
+
+    $\kappa(f, g) = \innerproduct{\phi(f)}{\phi(g)}_H$ is an inner product on $H$, and therefore defines a unique positive-definite kernel (by the positive-definite property of the inner product).
 \end{proof}
 
 \subsection{Proposed Hash and Kernel}
