@@ -478,15 +478,14 @@ In the context of real-time anomaly detection, this has the advantage of decompo
 \begin{algorithm}
     \SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}
     \SetKwData{Raise}{Raise}
-
     \Input{$t = (\ldots, t_i, \ldots) \in S$, real-time time series;\\
         $R$, set of thresholds;\\
         $K$, window sizes, w.r.t. $R$;\\
         $\phi \colon S \rightarrow H$, feature map;\\
         $a$, number of hash functions;\\
         $M \in \N$;\\
-        $d \colon H \times H \rightarrow \R^+$, distance metric;\\
-        $A_r(h)$, function on hash values for each $r \in R$. $A_r$ maps known inputs to $1$, unknown (anomalous) inputs to $0$.\\
+        $d \colon \R^{dim(H)} \times \R^{dim(H)} \rightarrow \R^+$, distance metric;\\
+        $A_r(h)$, function on hash values for each $r \in R$. $A_r$ maps known inputs to $1$, unknown (anomalous) inputs to $0$.
     }
     \Output{Behavior hash value for time series at every $\floor{\frac{k}{2}}$ points.\\
         Signals anomalies when detected}
@@ -494,7 +493,7 @@ In the context of real-time anomaly detection, this has the advantage of decompo
         \If{$\mathtt{len}(t) \bmod k = 0$}{
             Let $r$ be the corresponding window size for $k$.\\
             Let $t_k$ = $t[-k:]$\\
-            $P = \{ \pi_{h_a}(\phi(t_k)\}$ \tcc*[f]{project $\phi(t_k)$ onto $a$ random hyperplanes $h_a$}\\
+            $P = \{ \pi_{h_a}(\phi(t_k)\}$ \tcc*[f]{project $\phi(t_k)$ onto $a$ random hyperplanes $h_a$ in $\R^{dim(H)}$}\\
             Define $v_P(r) = \min\limits_{p \in P}[\frac{d(\bm{0}, p)}{r} \bmod M]$\\
             $D = \{ v_P(r) \mid r \in R \}$ \tcc*[f]{min distance from origin to projected point in units $r$}\\
             Define $R_i = \{ r_j \in R \mid j \ge i \}$\\
@@ -575,28 +574,15 @@ We now define a feature map from the raw observation space of time series $S$ to
 \end{claim}
 
 \begin{proof}
-    %We first note that $\phi(\cdot)$ is a linear map:
-    %\begin{align*}
-    %    \phi(a x + b y) = (a x + b y, D^1 (a x + b y)) = a (x, D^1 x) + b (y, D^1 y) = a \phi(x) + b \phi(y)
-    %\end{align*}
+    We first note that $\phi(\cdot)$ is a linear map:
+    \begin{align*}
+        \phi(a x + b y) = (a x + b y, D^1 (a x + b y)) = a (x, D^1 x) + b (y, D^1 y) = a \phi(x) + b \phi(y)
+    \end{align*}
 
-    $\kappa(f, g) = \innerproduct{\phi(f)}{\phi(g)}_H$ is an inner product on $H$, and therefore defines a unique positive-definite kernel (by the positive-definite property of the inner product).
+    $\kappa(f, g) = \innerproduct{\phi(f)}{\phi(g)}_H$ is an inner product on $H$, and therefore defines a unique positive-definite kernel (by the positive-definite property of the inner product and linearity of $\phi(\cdot)$).
 \end{proof}
 
-\subsection{Proposed Hash and Kernel}
-\label{subsec:proposed_kernel}
-
-Let $S$ be the space of $n$-point time series to be processed.
-Pick $a$ random lines in $\R^2$ and project each point $x_i$ onto each line $h_k$.
-Each line will be partitioned into buckets of size $\frac{r}{n}$ (here, we see the parametrization of the hash).
-In practice, we fix a number $M$ (say, $2^{32}$), and apply $h_r(x) = \frac{\pi(x)*n}{r} \bmod M$. 
-
-Points are considered to intersect if they hash to the same bucket on a fixed number of hash function.
-We propose that the number of hash functions on which points must collide to determine intersection be a tunable parameter.
-Time series which intersect on more than $\frac{n}{2}$ points (in time order) are said to be candidate pairs for $r$-closeness.
-
 \section{Results and Evaluation}
-
 \subsection{Dynamic Time Warping}
 
 % Empirical evaluation of DTW on traces *for anomaly detection*
