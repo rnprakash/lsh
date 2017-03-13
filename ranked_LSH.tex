@@ -24,7 +24,7 @@
 \newtheoremstyle{thm}
 {8pt}
 {5pt}
-{\itshape}
+{\itshape\/}
 {}
 {\bfseries}
 {:}
@@ -231,7 +231,7 @@ A kernel function $\kappa(\cdot,\cdot)$ thus defines a new similarity measure on
 The following definitions let us formally define kernel transforms on time series:
 
 \begin{definition}[Hilbert space]\label{defn:hilbert_space}
-    A vector space $H$ over a field $F$ with an inner product $\innerproduct{\cdot}{\cdot}_H: H \times H \rightarrow F$ that also defines a complete\footnote{A space $X$ is complete if every Cauchy sequence  converges in $X$. A Cauchy sequence is a sequence $\{x_n\}_{n \in \N}, x_n \in X$ with $\lim\limits_{(m,n)\rightarrow\infty} |x_m - x_n| = 0$.} metric space is called a Hilbert space.
+    A vector space $H$ over a field $F$ with an inner product $\innerproduct{\cdot}{\cdot}_H: H \times H \rightarrow F$ that also defines a complete\footnote{A space $X$ is complete if every Cauchy sequence  converges in $X$. A Cauchy sequence is a sequence ${\{x_n\}}_{n \in \N}, x_n \in X$ with $\lim\limits_{(m,n)\rightarrow\infty} |x_m - x_n| = 0$.} metric space is called a Hilbert space.
 \end{definition}
 
 The key property of Hilbert spaces we wish to leverage is the norm induced by the inner product $\innerproduct{\cdot}{\cdot}_H$.
@@ -251,14 +251,14 @@ Thus, we can consider arbitrary higher-order distance measures as any positive-s
     $H$ is a reproducing kernel Hilbert space if there exists a \textbf{reproducing kernel}, $\kappa_x$ $\forall x \in X$, where $f(x) = \innerproduct{f}{\kappa_x}_H~\forall~f \in H$.
 \end{definition}
 
-Note that $\kappa(x,y) = \innerproduct{\kappa_x}{\kappa_y}_H$, and thus the kernel transform in Definition~\ref{defn:kernel_trick} defines a RKHS.
+Note that $\kappa(x,y) = \innerproduct{\kappa_x}{\kappa_y}_H$, and thus the kernel transform in Definition~\ref{defn:kernel_trick} defines a RKHS.\@
 This demonstrates that we can consider arbitrary higher-order similarity measures using kernel functions on the space of observed samples.
-Furthermore, we can construct proper distance measures from the norm induced by the inner product on a RKHS.
+Furthermore, we can construct proper distance measures from the norm induced by the inner product on a RKHS.\@
 
 \begin{definition}[Hilbert norm-induced distance]\label{defn:norm_distance}
     Given an input set $X$ and a reproducing kernel $\kappa$ for RKHS $H$: $\kappa(\cdot, \cdot) \colon X \times X \rightarrow \R$, define a distance measure on $X$ by:
     \begin{align*}
-        d(x,y)^2 &= \norm{\phi(x) - \phi(y)}_H^2 = \innerproduct{\phi(x) - \phi(y)}{\phi(x) - \phi(y)}_H \\
+        {d(x,y)}^2 &= \norm{\phi(x) - \phi(y)}_H^2 = \innerproduct{\phi(x) - \phi(y)}{\phi(x) - \phi(y)}_H \\
         &= \innerproduct{z}{z}_H = \kappa(\phi^{-1}(z), \phi^{-1}(z)) \numberthis
     \end{align*}
 \end{definition}
@@ -410,13 +410,13 @@ We discuss this in greater depth in Section~\ref{subsec:ranked_lsh}
 \subsection{Kernel Model}
 \label{subsec:kernel_model}
 
-Consider a space of samples $S = \{x_1,\ldots,x_n\} \subset \R^d$ with similarity measure $\kappa \colon S \times S \rightarrow \R$ defined by $\kappa(x,y) = \innerproduct{\phi(x)}{\phi(y)}_H$, with $H$ being a RKHS.
-We now consider the effects of a positive-semidefinite similarity measure $\kappa(\cdot, \cdot)$ as well as its corresponding distance measure $\tilde{\kappa}(x,y) = \|\phi(x) - \phi(y)\|_H$, the norm induced by the RKHS.
-Note that from Definition~\ref{defn:kernel_trick}, we do not need to explicitly define the mapping $\phi(\cdot)$ to an RKHS.
+Consider a space of samples $S = \{x_1,\ldots,x_n\} \subset \R^d$ with similarity measure $\kappa \colon S \times S \rightarrow \R$ defined by $\kappa(x,y) = \innerproduct{\phi(x)}{\phi(y)}_H$, with $H$ being a RKHS.\@
+We now consider the effects of a positive-semidefinite similarity measure $\kappa(\cdot, \cdot)$ as well as its corresponding distance measure $\tilde{\kappa}(x,y) = \|\phi(x) - \phi(y)\|_H$, the norm induced by the RKHS.\@
+Note that from Definition~\ref{defn:kernel_trick}, we do not need to explicitly define the mapping $\phi(\cdot)$ to an RKHS.\@
 
 \begin{definition}[Kernelized LSH]\label{defn:kernel_lsh}
     %Let $\kappa_r(\cdot, \cdot) = \kappa()$ 
-    ${\LSH}_R = \{ {\LSH}_r \}_{r \in R}$ is a $(R, p, q)$-sensitive ranked, kernelized LSH family if, for any $x,y \in S$:
+    ${\LSH}_R = {\{ {\LSH}_r \}}_{r \in R}$ is a $(R, p, q)$-sensitive ranked, kernelized LSH family if, for any $x,y \in S$:
     \begin{enumerate}[(i)]
         \item If $\tilde{\kappa}(x,y) \le r, \Pr[h_r(x) = h_r(y)] > p$
         \item If $\tilde{\kappa}(x,y) \ge r, \Pr[h_r(x) = h_r(y)] < q$
@@ -484,7 +484,7 @@ In the context of real-time anomaly detection, this has the advantage of decompo
         $\phi \colon S \rightarrow H$, feature map;\\
         $a$, number of hash functions;\\
         $M \in \N$;\\
-        $d \colon \R^{dim(H)} \times \R^{dim(H)} \rightarrow \R^+$, distance metric;\\
+        $d \colon \R^{\dim(H)} \times \R^{\dim(H)} \rightarrow \R^+$, distance metric;\\
         $A_r(h)$, function on hash values for each $r \in R$. $A_r$ maps known inputs to $1$, unknown (anomalous) inputs to $0$.
     }
     \Output{Behavior hash value for time series at every $\floor{\frac{k}{2}}$ points.\\
@@ -493,7 +493,7 @@ In the context of real-time anomaly detection, this has the advantage of decompo
         \If{$\mathtt{len}(t) \bmod k = 0$}{
             Let $r$ be the corresponding window size for $k$.\\
             Let $t_k$ = $t[-k:]$\\
-            $P = \{ \pi_{h_a}(\phi(t_k)\}$ \tcc*[f]{project $\phi(t_k)$ onto $a$ random hyperplanes $h_a$ in $\R^{dim(H)}$}\\
+            $P = \{ \pi_{h_a}(\phi(t_k))\}$ \tcc*[f]{project $\phi(t_k)$ onto $a$ random hyperplanes $h_a$ in $\R^{\dim(H)}$}\\
             Define $v_P(r) = \min\limits_{p \in P}[\frac{d(\bm{0}, p)}{r} \bmod M]$\\
             $D = \{ v_P(r) \mid r \in R \}$ \tcc*[f]{min distance from origin to projected point in units $r$}\\
             Define $R_i = \{ r_j \in R \mid j \ge i \}$\\
@@ -515,7 +515,7 @@ We now propose a specific distance measure and kernel transform to maximize the 
 Consider a Hilbert space $H$ over finite-length, discrete-time time series equipped with the following norm:
 
 \begin{align}\label{eqn:norm}
-    \norm{x}_H = \sqrt{\sum\limits_i{x_i^2} + \sum\limits_i{(D^1 x_i)^2}}
+    \norm{x}_H = \sqrt{\sum\limits_i{x_i^2} + \sum\limits_i{(D^1 x_i)}^2}
 \end{align}
 Where $D^1 s$ represents the time series of point-wise first derivatives of $s$.
 
@@ -525,26 +525,27 @@ However, we show that this is in fact a proper norm and additionally explore the
 \begin{claim}
     The following seminorm is a proper norm:
     \begin{align*}
-        \norm{x}_H = \sqrt{\sum\limits_i{x_i^2} + \sum\limits_i{(D^1 x_i)^2}}
+        \norm{x}_H = \sqrt{\sum\limits_i{x_i^2} + \sum\limits_i{(D^1 x_i)}^2}
     \end{align*}
 \end{claim}
 
 \begin{proof}
     \begin{align*}
-        \norm{x + y}_H = \sqrt{\sum\limits_i{(x_i + y_i)^2} + \sum\limits_i{(D^1 (x_i + y_i))^2}} \\
-        \le \sqrt{\sum\limits_i{x_i^2} + \sum\limits_i{y_i^2} + \sum\limits_i{(D^1 x_i)^2} + \sum\limits_i{(D^1 y_i)^2}}\\
-        \le \sqrt{\sum\limits_i{x_i^2} + \sum\limits_i{(D^1 x_i)^2}} + \sqrt{\sum\limits_i{y_i^2} + \sum\limits_i{(D^1 y_i)^2}}\\
-        = \norm{x}_H + \norm{y}_H \numberthis
+        \norm{x + y}^2_H = \sum\limits_i{(x_i + y_i)}^2 + \sum\limits_i{(D^1 (x_i + y_i))}^2 \\
+        = \sum\limits_i{x_i^2} + \sum\limits_i{(D^1 x_i)}^2 + \sum\limits_i{y_i^2} + \sum\limits_i{(D^1 y_i)}^2\\
+        + 2 \sum\limits_i{(x_i y_i)} + \sum\limits_i{(D^1 x_i D^1 y_i)} \\
+        \le \norm{x}^2_H + \norm{y}^2_H + 2 |\innerproduct{x}{y}_H|\\
+        \le {(\norm{x}_H + \norm{y}_H)}^2 (\textnormal{by Cauchy-Schwartz})\numberthis
     \end{align*}
 
     \begin{align*}
-        \norm{a x}_H = \sqrt{\sum\limits_i{(a x_i)^2} + \sum\limits_i{(D^1 a x_i)^2}}\\
-        = \sqrt{a^2 \sum\limits_i{x_i^2} + a^2 \sum\limits_i{(D^1 x_i)^2}}\\
+        \norm{a x}_H = \sqrt{\sum\limits_i{(a x_i)}^2 + \sum\limits_i{(D^1 a x_i)}^2}\\
+        = \sqrt{a^2 \sum\limits_i{x_i^2} + a^2 \sum\limits_i{(D^1 x_i)}^2}\\
         = |a| \norm{x}_H \numberthis
     \end{align*}
 
     \begin{align*}
-        \norm{x} = 0 \Leftrightarrow \sqrt{\sum\limits_i{x_i^2} + \sum\limits_i{(D^1 x_i)^2}} = 0\Leftrightarrow x = \bm{0} \numberthis
+        \norm{x} = 0 \Leftrightarrow \sqrt{\sum\limits_i{x_i^2} + \sum\limits_i{(D^1 x_i)}^2} = 0\Leftrightarrow x = \bm{0} \numberthis
     \end{align*}
 \end{proof}
 
@@ -557,7 +558,7 @@ However, we show that this is in fact a proper norm and additionally explore the
 
 \begin{proof}
     \begin{align*}
-        \sqrt{\innerproduct{x}{x}_H} = \sqrt{\sum\limits_i{x_i^2} + \sum\limits_i{(D^1 x_i)^2}} = \norm{x}_H
+        \sqrt{\innerproduct{x}{x}_H} = \sqrt{\sum\limits_i{x_i^2} + \sum\limits_i{(D^1 x_i)}^2} = \norm{x}_H
     \end{align*}
 \end{proof}
 
@@ -570,7 +571,7 @@ We now define a feature map from the raw observation space of time series $S$ to
         \phi \colon S & \rightarrow H\\
         s &\mapsto (s,D^1 s) \label{eqn:phi}
     \end{align*}
-    $\phi(\cdot)$ defines a reproducing kernel $\kappa \colon X \times X \rightarrow H$ with $\kappa(f, g) = \innerproduct{\phi(f)}{\phi{(g)}}_H$ for $f,g \in X$ and $\norm{h}_H = \sqrt{\sum\limits_i{h_i^2} + \sum\limits_i{(D^1 h_i)^2}}$ for $h \in H$.
+    $\phi(\cdot)$ defines a reproducing kernel $\kappa \colon X \times X \rightarrow H$ with $\kappa(f, g) = \innerproduct{\phi(f)}{\phi{(g)}}_H$ for $f,g \in X$ and $\norm{h}_H = \sqrt{\sum\limits_i{h_i^2} + \sum\limits_i{(D^1 h_i)}^2}$ for $h \in H$.
 \end{claim}
 
 \begin{proof}
@@ -582,6 +583,7 @@ We now define a feature map from the raw observation space of time series $S$ to
     $\kappa(f, g) = \innerproduct{\phi(f)}{\phi(g)}_H$ is an inner product on $H$, and therefore defines a unique positive-definite kernel (by the positive-definite property of the inner product and linearity of $\phi(\cdot)$).
 \end{proof}
 
+\iffalse{}
 \section{Results and Evaluation}
 \subsection{Dynamic Time Warping}
 
@@ -592,6 +594,8 @@ We now define a feature map from the raw observation space of time series $S$ to
 \subsection{Our Scheme}
 
 \todo{Proof of hash approximating kernel distance measure, evaluation of detection probability, and algorithmic complexity evaluation.}
+
+\fi
 
 \bibliographystyle{unsrt}
 \bibliography{../bibliography/bibliography}
