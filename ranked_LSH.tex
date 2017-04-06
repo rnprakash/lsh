@@ -8,8 +8,10 @@
 \usepackage{booktabs,color,tabularx}
 \usepackage[ruled,lined]{algorithm2e}
 \usepackage{bm}
+\usepackage{float}
 \newcommand\numberthis{\addtocounter{equation}{1}\tag{\theequation}}
 \newcommand{\norm}[1]{\left\lVert#1\right\rVert}
+\newcommand{\cardinality}[1]{\left\lvert#1\right\rvert}
 \newcommand{\innerproduct}[2]{\langle{}#1,#2\rangle{}}
 \newtheoremstyle{def}
 {8pt}
@@ -457,56 +459,13 @@ Thus, by applying this tiered ANN calculation, we are able to \textit{rank} the 
 
 \section{Anomaly Detection on Time Series}
 \label{subsec:anomaly_detection}
+\label{sec:proposed_scheme}
 
 The above theory provides intuition that similar time series may be grouped together and ranked by their closeness via a kernel distance measure $\tilde{\kappa}$~\cite{Hachiya13-NSH}.
 In the context of anomaly detection, we can apply this scheme to a set of \textit{normal} traces (time series of utilization, label encoded syscalls, etc.) to determine what thresholds and clusters constitute normal execution with a finer granularity.
 
 Instead of a binary label of \textit{normal} vs \textit{anomalous}, we stratify applications by behavior exhibited during execution.
 Traces which do not match enough previously ``normal'' clusters over the set of thresholds may be considered to represent anomalous activity.
-
-\subsection{Distance Approximations in Real-Time}
-\label{subsec:time_series}
-
-We have so far defined a kernelized hash family (Definition~\ref{defn:kernel_lsh}) over some arbitrary space $S$, which assumes that we treat an entire (finite) time series as a single element in this space and compute distances on these full time series.
-However, to compute distances between time series in real-time, we must make some adjustments to account for each time series being an incoming stream of data.
-
-To determine the perceived behavior of time series in real-time with respect to a distance measure $\tilde{\kappa}(\cdot,\cdot)$, we \textit{segment} the time series into overlapping windows of length $k$, with an overlap of $\floor[\big]{\frac{k}{2}}$ points.
-We now construct a RKLSH family over the space of such $k$-length time series segments to satisfy the above theory.
-
-In the context of real-time anomaly detection, this has the advantage of decomposing examined time series into finite time series of the same length, reducing computation by restricting time series length to a variable parameter, and allowing us to define \textit{behavior over time} as we hash each segment independently.
-
-\begin{algorithm}
-    \SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}
-    \SetKwData{Raise}{Raise}
-    \Input{$t = (\ldots, t_i, \ldots) \in S$, real-time time series;\\
-        $R$, set of thresholds;\\
-        $K$, window sizes, w.r.t. $R$;\\
-        $\phi \colon S \rightarrow H$, feature map;\\
-        $a$, number of hash functions;\\
-        $M \in \N$;\\
-        $d \colon \R^{\dim(H)} \times \R^{\dim(H)} \rightarrow \R^+$, distance metric;\\
-        $A_r(h)$, function on hash values for each $r \in R$. $A_r$ maps known inputs to $1$, unknown (anomalous) inputs to $0$.
-    }
-    \Output{Behavior hash value for time series at every $\floor{\frac{k}{2}}$ points.\\
-        Signals anomalies when detected}
-    \For{$k \in K$}{
-        \If{$\mathtt{len}(t) \bmod k = 0$}{
-            Let $r$ be the corresponding window size for $k$.\\
-            Let $t_k$ = $t[-k:]$\\
-            $P = \{ \pi_{h_a}(\phi(t_k))\}$ \tcc*[f]{project $\phi(t_k)$ onto $a$ random hyperplanes $h_a$ in $\R^{\dim(H)}$}\\
-            Define $v_P(r) = \min\limits_{p \in P}[\frac{d(\bm{0}, p)}{r} \bmod M]$\\
-            $D = \{ v_P(r) \mid r \in R \}$ \tcc*[f]{min distance from origin to projected point in units $r$}\\
-            Define $R_i = \{ r_j \in R \mid j \ge i \}$\\
-            \If{$\exists~i$ such that $\forall r_j \in R_i, |\{A_r(v_P(r_j)) = 0\}| \ge |\frac{R_i}{2}|$}{
-                \Raise{anomaly}
-            }
-        }
-    }
-    \caption{Real-time Behavioral Hash for Time Series}
-\end{algorithm}
-
-\section{Proposed Scheme}
-\label{sec:proposed_scheme}
 
 We now propose a specific distance measure and kernel transform to maximize the impact of our RKLSH algorithm for anomaly detection.
 
@@ -582,6 +541,47 @@ We now define a feature map from the raw observation space of time series $S$ to
 
     $\kappa(f, g) = \innerproduct{\phi(f)}{\phi(g)}_H$ is an inner product on $H$, and therefore defines a unique positive-definite kernel (by the positive-definite property of the inner product and linearity of $\phi(\cdot)$).
 \end{proof}
+
+\subsection{Distance Approximations in Real-Time}
+\label{subsec:time_series}
+
+\begin{algorithm}[H]
+    \SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}
+    \SetKwData{Raise}{Raise}
+    \Input{$t = (\ldots, t_i, \ldots) \in S$, real-time time series;\\
+        $R$, set of thresholds;\\
+        $K$, window sizes;\\
+        $\phi \colon S \rightarrow H$, feature map;\\
+        $a$, number of hash functions;\\
+        $M \in \N$;\\
+        $d \colon \R^{\dim(H)} \times \R^{\dim(H)} \rightarrow \R^+$, distance metric;\\
+        $A_r(h)$, function on hash values for each $r \in R$. $A_r$ maps known inputs to $1$, unknown (anomalous) inputs to $0$.
+    }
+    \Output{Behavior hash value for time series at every $\floor{\frac{k}{2}}$ points.\\
+        Signals anomalies when detected}
+    \For{$k \in K$}{
+        \If{$\mathtt{len}(t) \bmod k = 0$}{
+            Let $t_k$ = $t[-k:]$\\
+            $P = \{ \pi_{h_a}(\phi(t_k))\}$ \tcc*[f]{project $\phi(t_k)$ onto $a$ random hyperplanes $h_a$ in $\R^{\dim(H)}$}\\
+            Define $v_P(r) = \min\limits_{p \in P}[\frac{d(\bm{0}, p)}{r} \bmod M]$\\
+            $D = \{ v_P(r) \mid r \in R \}$ \tcc*[f]{min distance from origin to projected point for each unit $r$}\\
+            Define $R_i = \{ r_j \in R \mid j \ge i \}$\\
+            \If{$\exists~R_i$ such that $|\{A_r(v_P(r_j)) = 0 \mid \forall r_j \in R_i\}| \ge \frac{\cardinality{R_i}}{2}$}{
+                \Raise{anomaly}
+            }
+        }
+    }
+    \caption{Real-time Behavioral Hash for Time Series}
+\end{algorithm}
+
+We have so far defined a kernelized hash family (Definition~\ref{defn:kernel_lsh}) over some arbitrary space $S$, which assumes that we treat an entire (finite) time series as a single element in this space and compute distances on these full time series.
+However, to compute distances between time series in real-time, we must make some adjustments to account for each time series being an incoming stream of data.
+
+To determine the perceived behavior of time series in real-time with respect to a distance measure $\tilde{\kappa}(\cdot,\cdot)$, we \textit{segment} the time series into overlapping windows of length $k$, with an overlap of $\floor[\big]{\frac{k}{2}}$ points.
+We now construct a RKLSH family over the space of such $k$-length time series segments to satisfy the above theory.
+
+In the context of real-time anomaly detection, this has the advantage of decomposing examined time series into finite time series of the same length, reducing computation by restricting time series length to a variable parameter, and allowing us to define \textit{behavior over time} as we hash each segment independently.
+
 
 \iffalse{}
 \section{Results and Evaluation}
