@@ -555,7 +555,7 @@ We now define a feature map from the raw observation space of time series $S$ to
         $a$, number of hash functions;\\
         $M \in \N$;\\
         $d \colon \R^{\dim(H)} \times \R^{\dim(H)} \rightarrow \R^+$, distance metric;\\
-        $A_r(h)$, function on hash values for each $r \in R$. $A_r$ maps known inputs to $1$, unknown (anomalous) inputs to $0$.
+        $A(r,h)$, function on hash values for each $r \in R$. $A(r,\cdot)$ maps known inputs to $1$, unknown (anomalous) inputs to $0$.
     }
     \Output{Behavior hash value for time series at every $\floor{\frac{k}{2}}$ points.\\
         Signals anomalies when detected}
@@ -566,7 +566,7 @@ We now define a feature map from the raw observation space of time series $S$ to
             Define $v_P(r) = \min\limits_{p \in P}[\frac{d(\bm{0}, p)}{r} \bmod M]$\\
             $D = \{ v_P(r) \mid r \in R \}$ \tcc*[f]{min distance from origin to projected point for each unit $r$}\\
             Define $R_i = \{ r_j \in R \mid j \ge i \}$\\
-            \If{$\exists~R_i$ such that $|\{A_r(v_P(r_j)) = 0 \mid \forall r_j \in R_i\}| \ge \frac{\cardinality{R_i}}{2}$}{
+            \If{$\exists~R_i$ such that $|\{A(r,v_P(r_j)) = 0 \mid \forall r_j \in R_i\}| \ge \frac{\cardinality{R_i}}{2}$}{
                 \Raise{anomaly}
             }
         }
