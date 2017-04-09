@@ -4,6 +4,7 @@ import sys
 import numpy as np
 import random as rand
 from collections import defaultdict
+from sets import Set
 
 def deriv(ts):
     return np.ediff1d(np.array(ts))
@@ -37,11 +38,11 @@ class Hash:
                 D = self.hash(tk)
                 for d,r in zip(D,self.R):
                     try:
-                        self.A[r][0].append(d[0])
-                        self.A[r][1].append(d[1])
+                        self.A[r][0].add(d[0])
+                        self.A[r][1].add(d[1])
                     except:
-                        self.A[r][0] = [d[0]]
-                        self.A[r][1] = [d[1]]
+                        self.A[r][0] = Set([d[0]])
+                        self.A[r][1] = Set([d[1]])
         return sum(len(self.A[k]) for k in self.A)
 
     # t is a real-time time series
@@ -95,7 +96,36 @@ class Hash:
             planes.append(b)
         return planes
 
+    def __repr__(self):
+        return str([self.A[r] for r in self.R])
+
 def main():
+    '''
+    trainFile = sys.argv[1]
+    testFile = sys.argv[2]
+
+    traindata = np.loadtxt(trainFile, delimiter=',')
+    testdata = np.loadtxt(testFile, delimiter=',')
+    y_train, X_train = map(int, traindata[:,0]),traindata[:,1:]
+    y_test, X_test = map(int,testdata[:,0]),testdata[:,1:]
+
+    models = dict()
+    for fv,y in zip(X_train,y_train):
+        try:
+            m = models[y]
+        except:
+            m = Hash()
+            models[y] = m 
+        m.train(fv, R=[0.1, 0.2, 0.3, 0.4, 0.5, 1], a=3)
+
+    print models
+
+    for fv,y in zip(X_test,y_test):
+        pts = [ len( [m for m in [models[idx].behavior_hash(fv, i) for i in range(1, len(fv))] if m] ) for idx in models ]
+        print pts
+        print y, np.argmin(pts)
+
+    '''
     model = Hash()
     with open(sys.argv[1]) as f:
         t = map(float, f.read().split())
