@@ -5,20 +5,30 @@ import numpy as np
 import random as rand
 from collections import defaultdict
 
-# minhash using a random projections
+def deriv(ts):
+    return np.ediff1d(np.array(ts))
 
 class Hash:
-    # \phi is feature mapping
-    def __init__(self, phi, d):
+    def feature_map(ts):
+        return np.concatenate((ts, np.ediff1d(np.array(ts))))
+
+    def distance(x,y):
+        return np.linalg.norm(x-y)
+
+    # \phi is feature mapping, d is distance function
+    def __init__(self, phi=feature_map, d=distance):
         self.phi = phi
         self.d = d
+        self.A = defaultdict(dict)
+
+    def delte_model(self):
+        self.A.clear()
 
     def train(self, t, R, K = [3], a = 5, M = 2**16):
         self.R = R
         self.K = K
         self.a = a
         self.M = M
-        self.A = defaultdict(dict)
         for i in range(len(t)):
             for k in self.K:
                 if ((i * 2) % k) != 0:
@@ -26,8 +36,13 @@ class Hash:
                 tk = t[-k:]
                 D = self.hash(tk)
                 for d,r in zip(D,self.R):
-                    self.A[r][d] = 1
-        return
+                    try:
+                        self.A[r][0].append(d[0])
+                        self.A[r][1].append(d[1])
+                    except:
+                        self.A[r][0] = [d[0]]
+                        self.A[r][1] = [d[1]]
+        return sum(len(self.A[k]) for k in self.A)
 
     # t is a real-time time series
     # i is index to current time
@@ -48,7 +63,7 @@ class Hash:
     def is_anomalous(self, D):
         # A[r] is dictionary of known values for threshold r. 0 is known, 1 is not
         # known is 2D list of behavior values
-        known = [ 0 if d in self.A[r] else 1 for d,r in zip(D,self.R) ]
+        known = [ 0 if ( d[0] in self.A[r][0] and d[1] in self.A[r][1] ) else 1 for d,r in zip(D,self.R) ]
         thresholds = [ sum( known[i:] ) for i in range(len(known)) ]
         return any( thresholds[i] > i for i in range(len(thresholds)) )
 
@@ -60,7 +75,8 @@ class Hash:
         # Project p onto $a$ random hyperplanes
         P = [ self.project(p, plane) for plane in self.make_planes(len(p)) ]
         # Get minimum distance from origin of points per unit r
-        D = [ int(min( [self.d(np.zeros(len(p)), p)/r for p in P] )) for r in self.R]
+        distances = np.array([self.d(np.zeros(len(p)), p) for p in P])
+        D = [ ( int(min( distances/r )), int(max( distances/r )) ) for r in self.R]
         return D
 
     def project(self, p, plane):
@@ -79,14 +95,8 @@ class Hash:
             planes.append(b)
         return planes
 
-def phi(ts):
-    return np.concatenate((ts, np.ediff1d(np.array(ts))))
-
-def distance(x,y):
-    return np.linalg.norm(x-y)
-
 def main():
-    model = Hash(phi, distance)
+    model = Hash()
     with open(sys.argv[1]) as f:
         t = map(float, f.read().split())
     model.train(t, R=[25, 50, 100], a=5)
