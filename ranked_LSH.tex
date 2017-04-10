@@ -552,27 +552,33 @@ We now define a feature map from the raw observation space of time series $S$ to
         $R$, set of thresholds;\\
         $K$, window sizes;\\
         $\phi \colon S \rightarrow H$, feature map;\\
-        $a$, number of hash functions;\\
+        $b$, number of bands
+        $a$, number of hash functions per band;\\
         $M \in \N$;\\
         $d \colon \R^{\dim(H)} \times \R^{\dim(H)} \rightarrow \R^+$, distance metric;\\
         $A(r,h)$, function on hash values for each $r \in R$. $A(r,\cdot)$ maps known inputs to $1$, unknown (anomalous) inputs to $0$.
     }
     \Output{Behavior hash value for time series at every $\floor{\frac{k}{2}}$ points.\\
         Signals anomalies when detected}
-    \For{$k \in K$}{
-        \If{$\mathtt{len}(t) \bmod k = 0$}{
+    \If{$\mathtt{len}(t) \bmod K[0] = 0$}{
+        \For{$k \in K$}{
             Let $t_k$ = $t[-k:]$\\
-            $P = \{ \pi_{h_a}(\phi(t_k))\}$ \tcc*[f]{project $\phi(t_k)$ onto $a$ random hyperplanes $h_a$ in $\R^{\dim(H)}$}\\
-            Define $v_P(r) = \min\limits_{p \in P}[\frac{d(\bm{0}, p)}{r} \bmod M]$\\
-            $D = \{ v_P(r) \mid r \in R \}$ \tcc*[f]{min distance from origin to projected point for each unit $r$}\\
+            $G = \{ {[h_1, \ldots, h_a ]}_1, \ldots, {[ h_1, \ldots, h_a]}_b \}$ \tcc*[f]{ construct $b$ sets of hash functions, each with $a$ hashes }\\
+            $\mathcal{P} = \{ \{ h_i(\phi(t_k)) \mid h_i \in g_b \} \mid g_b \in G \}$ \tcc*[f]{hash $\phi(t_k)$ (project onto $a$ random hyperplanes per band)}\\
+            Define $v_r(\mathcal{P}) = \{ \min\limits_{p \in P}[\frac{d(\bm{0}, p)}{r} \bmod M] \mid P \in \mathcal{P} \}$\\
+            $D = \{ v_r(\mathcal{P}) \mid r \in R \}$ \tcc*[f]{min distances from origin to projected point for each unit $r$ for each band}\\
             Define $R_i = \{ r_j \in R \mid j \ge i \}$\\
-            \If{$\exists~R_i$ such that $|\{A(r,v_P(r_j)) = 0 \mid \forall r_j \in R_i\}| \ge \frac{\cardinality{R_i}}{2}$}{
+            \If{$\exists~R_i$ such that $|\{A(r,v_r_j(P)) = 0 \mid \forall r_j \in R_i\}| \ge \frac{\cardinality{R_i}}{2}$}{
                 \Raise{anomaly}
             }
         }
     }
     \caption{Real-time Behavioral Hash for Time Series}
 \end{algorithm}
+
+\begin{claim}
+    The above algorithm defines a $()$-sensitive Hash family.
+\end{claim}
 
 We have so far defined a kernelized hash family (Definition~\ref{defn:kernel_lsh}) over some arbitrary space $S$, which assumes that we treat an entire (finite) time series as a single element in this space and compute distances on these full time series.
 However, to compute distances between time series in real-time, we must make some adjustments to account for each time series being an incoming stream of data.
@@ -581,6 +587,7 @@ To determine the perceived behavior of time series in real-time with respect to 
 We now construct a RKLSH family over the space of such $k$-length time series segments to satisfy the above theory.
 
 In the context of real-time anomaly detection, this has the advantage of decomposing examined time series into finite time series of the same length, reducing computation by restricting time series length to a variable parameter, and allowing us to define \textit{behavior over time} as we hash each segment independently.
+
 
 
 \iffalse{}

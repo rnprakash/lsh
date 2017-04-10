@@ -35,9 +35,9 @@ class Hash:
         self.b = b
 
         for i in range(len(t)):
+            if i % self.K[0] != 0:
+                continue
             for k in self.K:
-                if ((i * 2) % k) != 0:
-                    continue
                 tk = t[-k:]
                 D = self.hash(tk)
                 for d,r in zip(D,self.R):
