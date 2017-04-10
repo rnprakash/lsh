@@ -545,7 +545,7 @@ We now define a feature map from the raw observation space of time series $S$ to
 \subsection{Distance Approximations in Real-Time}
 \label{subsec:time_series}
 
-\begin{algorithm}[H]
+\begin{algorithm}[H]\label{alg:behavior_hash}
     \SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}
     \SetKwData{Raise}{Raise}
     \Input{$t = (\ldots, t_i, \ldots) \in S$, real-time time series;\\
@@ -577,7 +577,7 @@ We now define a feature map from the raw observation space of time series $S$ to
 \end{algorithm}
 
 \begin{claim}
-    The above algorithm defines a $()$-sensitive Hash family.
+    Algorithm~\ref{alg:behavior_hash} defines a $()$-sensitive Hash family.
 \end{claim}
 
 We have so far defined a kernelized hash family (Definition~\ref{defn:kernel_lsh}) over some arbitrary space $S$, which assumes that we treat an entire (finite) time series as a single element in this space and compute distances on these full time series.

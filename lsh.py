@@ -27,7 +27,7 @@ class Hash:
     def delte_model(self):
         self.A.clear()
 
-    def train(self, t, R, K = [3], a = 5, b = 3,  M = 2**16):
+    def train(self, t, R, K = [3,5], a = 5, b = 3,  M = 2**16):
         self.R = R
         self.K = K
         self.a = a
@@ -35,7 +35,7 @@ class Hash:
         self.b = b
 
         for i in range(len(t)):
-            if i % self.K[0] != 0:
+            if i % self.K[0] != 0 or i % self.K[0] != self.K[0]/2:
                 continue
             for k in self.K:
                 tk = t[-k:]
@@ -57,9 +57,9 @@ class Hash:
     # behaviors is true if known for k, false if anomalous, None otherwise
     def behavior_hash(self, t, i):
         behaviors = []
+        if i % self.K[0] != 0 or i % self.K[0] != self.K[0]/2:
+            return []
         for k in self.K:
-            if ((i * 2) % k) != 0:
-                continue
             tk = t[-k:]
             # D, indexed by r \in R, is distance per units in R
             D = self.hash(tk)
@@ -73,7 +73,7 @@ class Hash:
         # known is 2D list of behavior values
         anomalous = [ 0 if ( all( d[b] in self.A[r][b] for b in range(self.b) ) ) else 1 for d,r in zip(D,self.R) ]
         thresholds = [ sum( anomalous[i:] ) for i in range(len(anomalous)/2) ]
-        return any( thresholds[i] > i/2 for i in range(len(thresholds)) )
+        return any( thresholds[i] > i for i in range(len(thresholds)) )
 
     # Hash time series with window length w
     # Window length is a variable parameter that defines the sensitivity of the hash
@@ -149,13 +149,19 @@ def main():
         #print auc(fpr,tpr)
 
     '''
+    print "Loading time series"
     model = Hash()
-    with open(sys.argv[1]) as f:
-        t = map(float, f.read().split())
-    model.train(t, R=[25, 50, 100], a=5)
-    with open(sys.argv[2]) as f:
-        t = map(float, f.read().split())
-        pts = [m for m in [model.behavior_hash(t, i) for i in range(1, len(t))] if m]
+    t = np.loadtxt(sys.argv[1], delimiter=',')
+    #with open(sys.argv[1]) as f:
+    #    t = map(float, f.read().split(','))
+    print "Training model"
+    model.train(t[:50000], R=[25, 50, 100], a=5, b=3, K=[50,100])
+    #with open(sys.argv[2]) as f:
+    #    t = map(float, f.read().split())
+    print "Loading testing data"
+    t = np.loadtxt(sys.argv[2], delimiter=',')
+    print "Testing against model"
+    pts = [m for m in [model.behavior_hash(t, i) for i in range(1, len(t))] if m]
     print pts
     print len(pts)*3/float(len(t))
 
