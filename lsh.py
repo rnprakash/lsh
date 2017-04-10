@@ -35,7 +35,7 @@ class Hash:
         self.b = b
 
         for i in range(len(t)):
-            if i % self.K[0] != 0 or i % self.K[0] != self.K[0]/2:
+            if i % self.K[0] != 0 and i % self.K[0] != self.K[0]/2:
                 continue
             for k in self.K:
                 tk = t[-k:]
@@ -57,7 +57,7 @@ class Hash:
     # behaviors is true if known for k, false if anomalous, None otherwise
     def behavior_hash(self, t, i):
         behaviors = []
-        if i % self.K[0] != 0 or i % self.K[0] != self.K[0]/2:
+        if i % self.K[0] != 0 and i % self.K[0] != self.K[0]/2:
             return []
         for k in self.K:
             tk = t[-k:]
