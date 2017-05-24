@@ -6,6 +6,7 @@ import random as rand
 from collections import defaultdict
 from sets import Set
 from sklearn.metrics import roc_curve, auc
+import time
 
 def deriv(ts):
     return np.ediff1d(np.array(ts))
@@ -23,34 +24,33 @@ class Hash:
         self.d = d
         self.A = defaultdict(dict)
         self.planes = defaultdict(dict)
+        np.random.seed(int(time.time()))
 
     def delte_model(self):
         self.A.clear()
 
-    def train(self, t, R, K = [3,5], a = 5, b = 3,  M = 2**16):
+    def train(self, t, R, K = [3,5], a = 5, b = 3, M = 2**16):
         self.R = R
         self.K = K
         self.a = a
         self.M = M
         self.b = b
 
+        distances = []
         for i in range(len(t)):
             if i % self.K[0] != 0 and i % self.K[0] != self.K[0]/2:
                 continue
             for k in self.K:
-                tk = t[-k:]
+                tk = t[i:i+k]
                 D = self.hash(tk)
+                distances.append(self.d(tk, np.zeros(len(tk))))
                 for d,r in zip(D,self.R):
                     for b,v in enumerate(d):
                         try:
                             self.A[r][b].add(v)
-                            #self.A[r][0].add(d[0])
-                            #self.A[r][1].add(d[1])
                         except:
                             self.A[r][b] = Set([v])
-                            #self.A[r][0] = Set([d[0]])
-                            #self.A[r][1] = Set([d[1]])
-        return sum(len(self.A[k]) for k in self.A)
+        return distances
 
     # t is a real-time time series
     # i is index to current time
@@ -60,7 +60,7 @@ class Hash:
         if i % self.K[0] != 0 and i % self.K[0] != self.K[0]/2:
             return []
         for k in self.K:
-            tk = t[-k:]
+            tk = t[i:i+k]
             # D, indexed by r \in R, is distance per units in R
             D = self.hash(tk)
             # Check for anomaly
@@ -73,7 +73,7 @@ class Hash:
         # known is 2D list of behavior values
         anomalous = [ 0 if ( all( d[b] in self.A[r][b] for b in range(self.b) ) ) else 1 for d,r in zip(D,self.R) ]
         thresholds = [ sum( anomalous[i:] ) for i in range(len(anomalous)/2) ]
-        return any( thresholds[i] > i for i in range(len(thresholds)) )
+        return any( thresholds[i] > (len(thresholds) - i) for i in range(len(thresholds)) )
 
     # Hash time series with window length w
     # Window length is a variable parameter that defines the sensitivity of the hash
@@ -89,7 +89,7 @@ class Hash:
             P = [ [self.project(p, plane) for plane in self.planes[len(p)][b] ] for b in range(self.b) ]
         # Get minimum distance from origin of points per unit r
         distances = [ np.array([self.d(np.zeros(len(p)), p) for p in P[b]]) for b in range(self.b) ]
-        D = [ [ int(min( d/r )) for d in distances ] for r in self.R]
+        D = [ [ int(min( d/r ) ) for d in distances ] for r in self.R]
         return D
 
     def project(self, p, plane):
@@ -112,7 +112,6 @@ class Hash:
         return str([self.A[r] for r in self.R])
 
 def main():
-    '''
     trainFile = sys.argv[1]
     testFile = sys.argv[2]
 
@@ -121,31 +120,34 @@ def main():
     y_train, X_train = map(int, traindata[:,0]),traindata[:,1:]
     y_test, X_test = map(int,testdata[:,0]),testdata[:,1:]
 
+    #y_train = [y - 1 for y in y_train]
+    #y_test = [y - 1 for y in y_test]
+
     models = dict()
+    print "Training model"
     for fv,y in zip(X_train,y_train):
         try:
             m = models[y]
         except:
             m = Hash()
             models[y] = m 
-        m.train(fv, R=[0.01, 0.02, 0.03, 0.04], a=3)
-
-    print models
+        m.train(fv, R=np.linspace(0.01,0.10,num=20), a=5, K=[9,23,57,111], b=3)
 
     for fv,y in zip(X_test,y_test):
-        pts = [ len( [m for m in [models[idx].behavior_hash(fv, i) for i in range(1, len(fv))] if m] ) for idx in models ]
+        pts = [m for m in [models[0].behavior_hash(fv, i) for i in range(1, len(fv))] if m]
+        print '%d, %f' % (y, len(pts)/float(len(fv)))
+        pts = [ len( [m for m in [models[idx].behavior_hash(fv, i) for i in range(1, len(fv))] if m] ) for idx in range(len(models)) ]
         m = float(max(pts))
-        #print pts
-        probas = [ (m-x)/m for x in pts ]
         try:
+            probas = [ (m-x)/m for x in pts ]
             probas = [x/sum(probas) for x in probas]
         except:
-            pass
-        y_true = [ 1 if i is y-1 else 0 for i in range(len(models)) ]
-        #print probas
-        print pts
-        print y-1
-        fpr,tpr,_ = roc_curve(y_true, probas)
+            continue
+        y_true = [ 1 if i is y else 0 for i in range(len(models)) ]
+        print probas
+        print y_true
+        print
+        #fpr,tpr,_ = roc_curve(y_true, probas)
         #print auc(fpr,tpr)
 
     '''
@@ -164,6 +166,7 @@ def main():
     pts = [m for m in [model.behavior_hash(t, i) for i in range(1, len(t))] if m]
     print pts
     print len(pts)*3/float(len(t))
+    '''
 
 if __name__ == "__main__":
     main()

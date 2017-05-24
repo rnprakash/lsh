@@ -560,7 +560,7 @@ We now define a feature map from the raw observation space of time series $S$ to
     }
     \Output{Behavior hash value for time series at every $\floor{\frac{k}{2}}$ points.\\
         Signals anomalies when detected}
-    \If{$\mathtt{len}(t) \bmod K[0] = 0$}{
+    \If{$\mathtt{len}(t) \bmod \frac{K[0]}{2} = 0$}{
         \For{$k \in K$}{
             Let $t_k$ = $t[-k:]$\\
             $G = \{ {[h_1, \ldots, h_a ]}_1, \ldots, {[ h_1, \ldots, h_a]}_b \}$ \tcc*[f]{ construct $b$ sets of hash functions, each with $a$ hashes }\\
